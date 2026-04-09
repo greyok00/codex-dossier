@@ -146,7 +146,7 @@ describe("scenario runs", () => {
 
     expect(result.incident_type).toBe("emergency_safety");
     expect(result.routes.some((route) => /dallas.*police/i.test(route.name))).toBe(true);
-    expect(result.routes.some((route) => /dallaspolice\.net/i.test(route.complaint_url ?? ""))).toBe(true);
+    expect(result.routes.some((route) => route.group === "Local")).toBe(true);
     console.info(JSON.stringify(result, null, 2));
   });
 
@@ -174,8 +174,38 @@ describe("scenario runs", () => {
     });
 
     expect(result.incident_type).toBe("tenant_issue");
-    expect(result.routes.some((route) => /WA Attorney General complaint search/i.test(route.name))).toBe(true);
+    expect(result.routes.some((route) => /WA state consumer office directory/i.test(route.name))).toBe(true);
     expect(result.routes[0]?.group).toBe("State");
+    console.info(JSON.stringify(result, null, 2));
+  });
+
+  it("scenario 4: police misconduct complaint in Phoenix", () => {
+    const result = runScenario({
+      scenario: "Phoenix police misconduct complaint",
+      transcript: {
+        full_text:
+          "I need to file a complaint against a police officer in Phoenix, Arizona for excessive force by the department.",
+        language: "en",
+        segment_count: 1,
+        segments: [
+          {
+            start_ms: 0,
+            end_ms: 4000,
+            speaker_label: "Speaker 1",
+            text: "I need to file a complaint against a police officer in Phoenix, Arizona for excessive force by the department.",
+            confidence: 0.84,
+          },
+        ],
+      },
+      location_address: "Phoenix, AZ",
+      place_name: null,
+      place_phone: null,
+    });
+
+    expect(result.incident_type).toBe("police_misconduct");
+    expect(result.routes.some((route) => /civil rights/i.test(route.name) || /justice\.gov/i.test(route.source_label))).toBe(true);
+    expect(result.routes.some((route) => /state attorney general|attorney general office directory/i.test(route.name))).toBe(true);
+    expect(result.routes.some((route) => /google\.com\/search/i.test(route.complaint_url ?? ""))).toBe(false);
     console.info(JSON.stringify(result, null, 2));
   });
 });

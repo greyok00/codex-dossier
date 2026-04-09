@@ -6,6 +6,7 @@ import { sha256Hex } from "./lib/crypto";
 import {
   confirmFactSet,
   createExportEvidence,
+  ensureDemoWalkthroughCase,
   getCaseFileSummary,
   getCaptureContext,
   deleteIncidentCase,
@@ -25,6 +26,7 @@ import {
   saveFactSet,
   setLocalAiPrepared,
   setCaptureBriefSeen,
+  setFullAppWalkthroughEnabled,
   saveSubmissionProof,
   saveTranscript,
   selectRouteRecommendation,
@@ -32,7 +34,6 @@ import {
   setBiometricCredentialId,
   setBiometricPreference,
   setDeviceLockHash,
-  setQuickGuideSeen,
   setRequireUnlockOnOpen,
   setTheme,
   type CaptureContext,
@@ -76,6 +77,8 @@ interface BootstrapViewState {
   lastOpenPath: string | null;
   quickGuideSeen: boolean;
   captureBriefSeen: boolean;
+  draftWalkthroughSeen: boolean;
+  fullAppWalkthroughEnabled: boolean;
 }
 
 interface ActiveCapture {
@@ -135,10 +138,13 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
     lastOpenPath: null,
     quickGuideSeen: false,
     captureBriefSeen: false,
+    draftWalkthroughSeen: false,
+    fullAppWalkthroughEnabled: true,
   });
   const [openedApp, setOpenedApp] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [demoCaseId, setDemoCaseId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -163,6 +169,8 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
         lastOpenPath: nextState.last_open_path,
         quickGuideSeen: nextState.quick_guide_seen,
         captureBriefSeen: nextState.capture_brief_seen,
+        draftWalkthroughSeen: nextState.draft_walkthrough_seen,
+        fullAppWalkthroughEnabled: nextState.full_app_walkthrough_enabled,
       });
       setOpenedApp(Boolean(nextState.local_ai_prepared_at));
       setUnlocked(!nextState.lock_hash || !nextState.require_unlock_on_open);
@@ -189,6 +197,40 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
     document.documentElement.dataset.theme = bootstrap.theme;
   }, [bootstrap.ready, bootstrap.theme]);
 
+  useEffect(() => {
+    let active = true;
+
+    if (!bootstrap.ready || !bootstrap.localAiPreparedAt || !openedApp || !bootstrap.fullAppWalkthroughEnabled) {
+      return () => {
+        active = false;
+      };
+    }
+
+    if (import.meta.env.MODE === "test") {
+      return () => {
+        active = false;
+      };
+    }
+
+    void ensureDemoWalkthroughCase(services.db)
+      .then((id) => {
+        if (!active) {
+          return;
+        }
+        setDemoCaseId(id);
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+        setDemoCaseId(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [bootstrap.fullAppWalkthroughEnabled, bootstrap.localAiPreparedAt, bootstrap.ready, openedApp, services.db]);
+
   async function handleThemeChange(theme: ThemeMode) {
     await setTheme(services.db, theme);
     setBootstrap((current) => ({
@@ -210,16 +252,6 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
     setGlobalError(null);
   }
 
-  async function handleQuickGuideSeen() {
-    await Promise.all([setQuickGuideSeen(services.db, true), setLastOpenPath(services.db, "/capture")]);
-    setBootstrap((current) => ({
-      ...current,
-      quickGuideSeen: true,
-      lastOpenPath: "/capture",
-    }));
-    setGlobalError(null);
-  }
-
   async function handleCaptureBriefSeen() {
     await setCaptureBriefSeen(services.db, true);
     setBootstrap((current) => ({
@@ -229,20 +261,20 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
     setGlobalError(null);
   }
 
-  async function handleResetQuickGuide() {
-    await setQuickGuideSeen(services.db, false);
-    setBootstrap((current) => ({
-      ...current,
-      quickGuideSeen: false,
-    }));
-    setGlobalError(null);
-  }
-
   async function handleResetCaptureBrief() {
     await setCaptureBriefSeen(services.db, false);
     setBootstrap((current) => ({
       ...current,
       captureBriefSeen: false,
+    }));
+    setGlobalError(null);
+  }
+
+  async function handleFullAppWalkthroughEnabled(fullAppWalkthroughEnabled: boolean) {
+    await setFullAppWalkthroughEnabled(services.db, fullAppWalkthroughEnabled);
+    setBootstrap((current) => ({
+      ...current,
+      fullAppWalkthroughEnabled,
     }));
     setGlobalError(null);
   }
@@ -371,17 +403,6 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
     );
   }
 
-  if (!bootstrap.quickGuideSeen) {
-    return (
-      <FullScreenShell
-        title="How Dossier works"
-        body="1. Start capture. 2. Review details. 3. Choose where to report. 4. Send or hand off with proof."
-        detail="A short capture creates a full case file on this device. You can reopen this guide in Settings anytime."
-        actionSlot={<PrimaryButton onClick={() => void handleQuickGuideSeen()}>Open Capture</PrimaryButton>}
-      />
-    );
-  }
-
   return (
     <BrowserRouter>
       <AuthenticatedShell
@@ -393,14 +414,16 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
         onLockNow={handleLockNow}
         onRequireUnlockOnOpenChange={handleRequireUnlockOnOpenChange}
         onResetCaptureBrief={handleResetCaptureBrief}
-        onResetQuickGuide={handleResetQuickGuide}
         onSaveAccessSettings={handleSecureDevice}
         onThemeChange={handleThemeChange}
         requireUnlockOnOpen={bootstrap.requireUnlockOnOpen}
         services={runtimeServices}
         theme={bootstrap.theme}
         captureBriefSeen={bootstrap.captureBriefSeen}
+        fullAppWalkthroughEnabled={bootstrap.fullAppWalkthroughEnabled}
+        demoCaseId={demoCaseId}
         onCaptureBriefSeen={handleCaptureBriefSeen}
+        onFullAppWalkthroughEnabled={handleFullAppWalkthroughEnabled}
       />
     </BrowserRouter>
   );
@@ -416,8 +439,11 @@ function PrepareLocalAiScreen({
   services: AppServices;
 }) {
   const [progress, setProgress] = useState<LocalAiProgressEvent | null>(null);
+  const [speechModelProgress, setSpeechModelProgress] = useState<LocalAiProgressEvent | null>(null);
+  const [writingModelProgress, setWritingModelProgress] = useState<LocalAiProgressEvent | null>(null);
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const autoStartedRef = useRef(false);
 
   async function handlePrepare() {
     setPending(true);
@@ -429,12 +455,40 @@ function PrepareLocalAiScreen({
       loaded_bytes: null,
       total_bytes: null,
       file: null,
-      model: model ?? "Xenova/whisper-tiny.en",
+      model: model ?? "Xenova/whisper-base.en",
+    });
+    setSpeechModelProgress({
+      stage: "load",
+      label: "Preparing local speech model.",
+      progress: 0,
+      loaded_bytes: null,
+      total_bytes: null,
+      file: null,
+      model: model ?? "Xenova/whisper-base.en",
+    });
+    setWritingModelProgress({
+      stage: "load",
+      label: "Preparing local writing model.",
+      progress: 0,
+      loaded_bytes: null,
+      total_bytes: null,
+      file: null,
+      model: "Qwen/Qwen2.5-0.5B-Instruct",
     });
 
     try {
       const result = await services.api.prepareLocalAi({
-        on_progress: (next) => setProgress(next),
+        on_progress: (next) => {
+          setProgress(next);
+          const modelName = (next.model ?? "").toLowerCase();
+          if (modelName.includes("whisper")) {
+            setSpeechModelProgress(next);
+            return;
+          }
+          if (modelName.includes("qwen") || modelName.includes("draft")) {
+            setWritingModelProgress(next);
+          }
+        },
       });
       await onPrepared({
         prepared_at: result.prepared_at,
@@ -447,20 +501,46 @@ function PrepareLocalAiScreen({
     }
   }
 
+  useEffect(() => {
+    if (autoStartedRef.current) {
+      return;
+    }
+    autoStartedRef.current = true;
+    void handlePrepare();
+  }, []);
+
   return (
     <FullScreenShell
       title="Prepare this device"
-      body="Dossier includes built-in speech tools and keeps complaint prep on this device."
-      detail="Transcript, details, reporting options, and draft generation stay local. No account or API key required."
+      body="Dossier is preparing local speech and writing tools on this device."
+      detail="First setup downloads offline models (Whisper + Qwen 0.5B) and caches them for local use."
       actionSlot={
         <>
           <ProgressPanel
             progress={progress}
-            title="Device setup"
-            emptyMessage="Built-in speech tools are not loaded on this device yet."
+            title="Setup progress"
+            emptyMessage="Local setup has not started."
           />
+          <ProgressPanel
+            progress={speechModelProgress}
+            title="Speech model download"
+            emptyMessage="Speech model is waiting to start."
+          />
+          <ProgressPanel
+            progress={writingModelProgress}
+            title="Writing model download"
+            emptyMessage="Writing model is waiting to start."
+          />
+          <section className="settings-card">
+            <h2>How local AI is used</h2>
+            <ul className="inline-list">
+              <li>Speech model: turns your audio capture into transcript text on-device.</li>
+              <li>Writing model: improves draft complaint wording from your saved facts.</li>
+              <li>No cloud calls for AI in this mode. Models stay cached for offline reuse.</li>
+            </ul>
+          </section>
           <PrimaryButton disabled={pending} onClick={() => void handlePrepare()}>
-            {pending ? "Loading this device" : "Prepare this device"}
+            {pending ? "Downloading models" : "Retry setup"}
           </PrimaryButton>
           {errorMessage ? <InlineError message={errorMessage} /> : null}
         </>
@@ -478,14 +558,16 @@ function AuthenticatedShell({
   onLockNow,
   onRequireUnlockOnOpenChange,
   onResetCaptureBrief,
-  onResetQuickGuide,
   onSaveAccessSettings,
   onThemeChange,
   requireUnlockOnOpen,
   services,
   theme,
   captureBriefSeen,
+  fullAppWalkthroughEnabled,
+  demoCaseId,
   onCaptureBriefSeen,
+  onFullAppWalkthroughEnabled,
 }: {
   biometricAvailable: boolean;
   biometricEnabled: boolean;
@@ -495,7 +577,6 @@ function AuthenticatedShell({
   onLockNow: () => Promise<void>;
   onRequireUnlockOnOpenChange: (requireUnlockOnOpen: boolean) => Promise<void>;
   onResetCaptureBrief: () => Promise<void>;
-  onResetQuickGuide: () => Promise<void>;
   onSaveAccessSettings: (input: {
     pin: string;
     biometricEnabled: boolean;
@@ -505,9 +586,12 @@ function AuthenticatedShell({
   services: AppServices;
   theme: ThemeMode;
   captureBriefSeen: boolean;
+  fullAppWalkthroughEnabled: boolean;
+  demoCaseId: string | null;
   onCaptureBriefSeen: () => Promise<void>;
+  onFullAppWalkthroughEnabled: (enabled: boolean) => Promise<void>;
 }) {
-  const defaultPath = normalizeAppPath(lastOpenPath) ?? "/capture";
+  const defaultPath = normalizeAppPath(lastOpenPath) ?? (fullAppWalkthroughEnabled ? "/cases" : "/capture");
 
   return (
     <div className="app-shell">
@@ -517,19 +601,56 @@ function AuthenticatedShell({
           <Route path="/" element={<Navigate replace to={defaultPath} />} />
           <Route
             path="/capture"
-            element={<CaptureScreen captureBriefSeen={captureBriefSeen} onCaptureBriefSeen={onCaptureBriefSeen} services={services} />}
+            element={
+              <CaptureScreen
+                captureBriefSeen={captureBriefSeen}
+                onCaptureBriefSeen={onCaptureBriefSeen}
+                services={services}
+                walkthroughEnabled={fullAppWalkthroughEnabled}
+              />
+            }
           />
-          <Route path="/cases/:incidentId/capture-saved" element={<CaptureSavedScreen db={db} services={services} />} />
-          <Route path="/cases/:incidentId/transcript" element={<TranscriptScreen db={db} services={services} />} />
-          <Route path="/cases/:incidentId/facts" element={<FactsScreen db={db} services={services} />} />
-          <Route path="/cases/:incidentId/routes" element={<CaseRoutesScreen db={db} services={services} />} />
-          <Route path="/cases/:incidentId/draft" element={<DraftReportScreen db={db} services={services} />} />
-          <Route path="/cases/:incidentId/send" element={<SendHandoffScreen db={db} services={services} />} />
+          <Route
+            path="/cases/:incidentId/capture-saved"
+            element={<CaptureSavedScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+          />
+          <Route
+            path="/cases/:incidentId/transcript"
+            element={<TranscriptScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+          />
+          <Route
+            path="/cases/:incidentId/facts"
+            element={<FactsScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+          />
+          <Route
+            path="/cases/:incidentId/routes"
+            element={<CaseRoutesScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+          />
+          <Route
+            path="/cases/:incidentId/draft"
+            element={
+              <DraftReportScreen
+                db={db}
+                walkthroughEnabled={fullAppWalkthroughEnabled}
+                services={services}
+              />
+            }
+          />
+          <Route
+            path="/cases/:incidentId/send"
+            element={<SendHandoffScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+          />
           <Route path="/cases/:incidentId/proof" element={<ProofActionScreen db={db} />} />
-          <Route path="/cases/:incidentId/export" element={<ExportCaseFileScreen db={db} services={services} />} />
-          <Route path="/cases/:incidentId" element={<CaseFileScreen db={db} />} />
-          <Route path="/cases" element={<CasesScreen db={db} />} />
-          <Route path="/routes" element={<RoutesIndexScreen db={db} />} />
+          <Route
+            path="/cases/:incidentId/export"
+            element={<ExportCaseFileScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+          />
+          <Route
+            path="/cases/:incidentId"
+            element={<CaseFileScreen db={db} demoCaseId={demoCaseId} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+          />
+          <Route path="/cases" element={<CasesScreen db={db} demoCaseId={demoCaseId} walkthroughEnabled={fullAppWalkthroughEnabled} />} />
+          <Route path="/routes" element={<RoutesIndexScreen db={db} demoCaseId={demoCaseId} walkthroughEnabled={fullAppWalkthroughEnabled} />} />
           <Route
             path="/settings/access"
             element={
@@ -546,13 +667,14 @@ function AuthenticatedShell({
                 biometricEnabled={biometricEnabled}
                 captureBriefSeen={captureBriefSeen}
                 currentTheme={theme}
+                fullAppWalkthroughEnabled={fullAppWalkthroughEnabled}
                 lockConfigured={lockConfigured}
                 onLockNow={onLockNow}
                 onRequireUnlockOnOpenChange={onRequireUnlockOnOpenChange}
                 onResetCaptureBrief={onResetCaptureBrief}
-                onResetQuickGuide={onResetQuickGuide}
                 onThemeChange={onThemeChange}
                 requireUnlockOnOpen={requireUnlockOnOpen}
+                onFullAppWalkthroughEnabled={onFullAppWalkthroughEnabled}
               />
             }
           />
@@ -625,10 +747,12 @@ function CaptureScreen({
   captureBriefSeen,
   onCaptureBriefSeen,
   services,
+  walkthroughEnabled,
 }: {
   captureBriefSeen: boolean;
   onCaptureBriefSeen: () => Promise<void>;
   services: AppServices;
+  walkthroughEnabled: boolean;
 }) {
   const navigate = useNavigate();
   const [recording, setRecording] = useState(false);
@@ -833,6 +957,13 @@ function CaptureScreen({
       </header>
 
       <section className="capture-stage">
+        {walkthroughEnabled ? (
+          <WalkthroughHint
+            step={1}
+            title="Start here"
+            body='Press "Record" to begin. Press "Stop capture" when done.'
+          />
+        ) : null}
         <p className="capture-timer">{formatDuration(elapsedMs)}</p>
         <button
           aria-label={recording ? "Stop capture" : "Start capture"}
@@ -847,6 +978,7 @@ function CaptureScreen({
           <span className="capture-orb__label">{recording ? "Stop capture" : "Record"}</span>
         </button>
         <PrimaryButton
+          className={walkthroughEnabled ? "walkthrough-target" : undefined}
           onClick={() => {
             void handleToggleCapture();
           }}
@@ -884,9 +1016,11 @@ function CaptureScreen({
 function CaptureSavedScreen({
   db,
   services,
+  walkthroughEnabled,
 }: {
   db: DossierDatabase;
   services: AppServices;
+  walkthroughEnabled: boolean;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -978,7 +1112,7 @@ function CaptureSavedScreen({
           </div>
           <div>
             <dt>Captured</dt>
-            <dd>{new Date(sourceEvidence.captured_at).toLocaleString()}</dd>
+            <dd>{formatLocalDateTime(sourceEvidence.captured_at)}</dd>
           </div>
           <div>
             <dt>Length</dt>
@@ -1005,6 +1139,13 @@ function CaptureSavedScreen({
         </section>
       ) : (
         <section className="settings-card">
+          {walkthroughEnabled ? (
+            <WalkthroughHint
+              step={2}
+              title="Create transcript"
+              body='Press "Build transcript" to convert this capture into text.'
+            />
+          ) : null}
           <h2>Next step</h2>
           <p>Create the transcript from this capture before reviewing details or where to report.</p>
           <ProgressPanel
@@ -1013,6 +1154,7 @@ function CaptureSavedScreen({
             emptyMessage="The first transcript may take longer while this device loads its built-in speech tools."
           />
           <PrimaryButton
+            className={walkthroughEnabled ? "walkthrough-target" : undefined}
             disabled={transcribeMutation.isPending}
             onClick={() => {
               if (captureQuery.data) {
@@ -1038,9 +1180,11 @@ function CaptureSavedScreen({
 function TranscriptScreen({
   db,
   services,
+  walkthroughEnabled,
 }: {
   db: DossierDatabase;
   services: AppServices;
+  walkthroughEnabled: boolean;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -1155,6 +1299,13 @@ function TranscriptScreen({
       </header>
 
       <section className="settings-card">
+        {walkthroughEnabled ? (
+          <WalkthroughHint
+            step={3}
+            title="Review transcript"
+            body='Check the transcript text, then press "Review details".'
+          />
+        ) : null}
         <h2>Full text</h2>
         <p className="transcript-fulltext">{transcript.full_text}</p>
       </section>
@@ -1190,13 +1341,14 @@ function TranscriptScreen({
           </div>
           <div>
             <dt>Created</dt>
-            <dd>{new Date(transcript.created_at).toLocaleString()}</dd>
+            <dd>{formatLocalDateTime(transcript.created_at)}</dd>
           </div>
         </dl>
       </section>
 
       <div className="button-row">
         <PrimaryButton
+          className={walkthroughEnabled ? "walkthrough-target" : undefined}
           onClick={() => {
             navigate(`/cases/${incidentId}/facts`);
           }}
@@ -1212,9 +1364,11 @@ function TranscriptScreen({
 function FactsScreen({
   db,
   services,
+  walkthroughEnabled,
 }: {
   db: DossierDatabase;
   services: AppServices;
+  walkthroughEnabled: boolean;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -1455,6 +1609,14 @@ function FactsScreen({
         <p className="screen-body">Check what was pulled from the transcript, edit if needed, then save.</p>
       </header>
 
+      {walkthroughEnabled ? (
+        <WalkthroughHint
+          step={4}
+          title="Confirm details"
+          body='Review and edit details, then press "Save details".'
+        />
+      ) : null}
+
       <section className="settings-card">
         <div className="section-heading">
           <h2>Review status</h2>
@@ -1583,6 +1745,7 @@ function FactsScreen({
 
       <div className="button-row">
         <PrimaryButton
+          className={walkthroughEnabled ? "walkthrough-target" : undefined}
           disabled={confirmMutation.isPending}
           onClick={() => {
             void confirmMutation.mutate();
@@ -1623,7 +1786,15 @@ function FactsScreen({
   );
 }
 
-function CasesScreen({ db }: { db: DossierDatabase }) {
+function CasesScreen({
+  db,
+  demoCaseId,
+  walkthroughEnabled,
+}: {
+  db: DossierDatabase;
+  demoCaseId: string | null;
+  walkthroughEnabled: boolean;
+}) {
   const queryClient = useQueryClient();
   const [cases, setCases] = useState<IncidentRecord[]>([]);
 
@@ -1662,6 +1833,13 @@ function CasesScreen({ db }: { db: DossierDatabase }) {
         <h1 className="screen-title">Cases</h1>
         <p className="screen-body">Manage case files created from your captures on this device.</p>
       </header>
+      {walkthroughEnabled ? (
+        <WalkthroughHint
+          step={1}
+          title="Start with the sample case"
+          body='Open the demo case file to see a complete example. At the end, come back here and press "Delete case" to practice cleanup.'
+        />
+      ) : null}
       {cases.length === 0 ? (
         <EmptyState title="No cases yet" detail="Start capture to create your first case." />
       ) : (
@@ -1683,10 +1861,19 @@ function CasesScreen({ db }: { db: DossierDatabase }) {
                 </div>
               </dl>
               <div className="button-row">
-                <LinkButton to={`/cases/${record.id}`}>Open case file</LinkButton>
+                <LinkButton
+                  className={walkthroughEnabled && demoCaseId === record.id ? "walkthrough-target" : undefined}
+                  to={`/cases/${record.id}`}
+                >
+                  Open case file
+                </LinkButton>
                 <LinkButton to={`/cases/${record.id}/routes`}>Where to report</LinkButton>
                 <button
-                  className="secondary-button danger-button"
+                  className={
+                    walkthroughEnabled && demoCaseId === record.id
+                      ? "secondary-button danger-button walkthrough-target"
+                      : "secondary-button danger-button"
+                  }
                   disabled={deleteMutation.isPending}
                   onClick={() => {
                     const confirmed = window.confirm("Delete this case and all saved items on this device?");
@@ -1709,7 +1896,15 @@ function CasesScreen({ db }: { db: DossierDatabase }) {
   );
 }
 
-function RoutesIndexScreen({ db }: { db: DossierDatabase }) {
+function RoutesIndexScreen({
+  db,
+  demoCaseId,
+  walkthroughEnabled,
+}: {
+  db: DossierDatabase;
+  demoCaseId: string | null;
+  walkthroughEnabled: boolean;
+}) {
   const [cases, setCases] = useState<IncidentRecord[]>([]);
 
   useEffect(() => {
@@ -1731,6 +1926,13 @@ function RoutesIndexScreen({ db }: { db: DossierDatabase }) {
         <h1 className="screen-title">Report options</h1>
         <p className="screen-body">Review saved report options for each case.</p>
       </header>
+      {walkthroughEnabled ? (
+        <WalkthroughHint
+          step={2}
+          title="Open saved report options"
+          body="Use this tab to review pre-built route options for each case."
+        />
+      ) : null}
 
       {cases.length === 0 ? (
         <EmptyState title="No report options yet" detail="Review details for a case, then open report options." />
@@ -1740,7 +1942,12 @@ function RoutesIndexScreen({ db }: { db: DossierDatabase }) {
             <li className="case-card" key={record.id}>
               <h2>{record.title}</h2>
               <p>{formatCaseTypeLabel(record.category) || "No case type set"}</p>
-              <LinkButton to={`/cases/${record.id}/routes`}>Open report options</LinkButton>
+              <LinkButton
+                className={walkthroughEnabled && demoCaseId === record.id ? "walkthrough-target" : undefined}
+                to={`/cases/${record.id}/routes`}
+              >
+                Open report options
+              </LinkButton>
             </li>
           ))}
         </ul>
@@ -1752,9 +1959,11 @@ function RoutesIndexScreen({ db }: { db: DossierDatabase }) {
 function CaseRoutesScreen({
   db,
   services,
+  walkthroughEnabled,
 }: {
   db: DossierDatabase;
   services: AppServices;
+  walkthroughEnabled: boolean;
 }) {
   const queryClient = useQueryClient();
   const { incidentId = "" } = useParams();
@@ -1873,6 +2082,7 @@ function CaseRoutesScreen({
         body="No report options are saved for this case yet."
         action={
           <PrimaryButton
+            className={walkthroughEnabled ? "walkthrough-target" : undefined}
             disabled={recommendMutation.isPending}
             onClick={() => {
               void recommendMutation.mutate();
@@ -1901,6 +2111,14 @@ function CaseRoutesScreen({
         <h1 className="screen-title">Report options</h1>
         <p className="screen-body">These options match your saved case details and source records.</p>
       </header>
+
+      {walkthroughEnabled ? (
+        <WalkthroughHint
+          step={5}
+          title="Choose where to report"
+          body='Select one option with the checkbox, then press "Draft report".'
+        />
+      ) : null}
 
       <section className="settings-card">
         <h2>Recommended order</h2>
@@ -1955,7 +2173,7 @@ function CaseRoutesScreen({
               </label>
               {recommendation.complaint_url ? (
                 <a className="secondary-button" href={recommendation.complaint_url} rel="noreferrer" target="_blank">
-                  Open site ➡️
+                  Open site 🌐
                 </a>
               ) : null}
             </div>
@@ -1981,7 +2199,7 @@ function CaseRoutesScreen({
 
       <div className="button-row">
         <LinkButton to={`/cases/${incidentId}/facts`}>Back to details</LinkButton>
-        <LinkButton to={`/cases/${incidentId}/draft`}>
+        <LinkButton className={walkthroughEnabled ? "walkthrough-target" : undefined} to={`/cases/${incidentId}/draft`}>
           {routesQuery.data.recommendations.some((route) => route.selected) ? "Draft report" : "Choose a destination first"}
         </LinkButton>
         <LinkButton to={`/cases/${incidentId}`}>Case file</LinkButton>
@@ -1993,12 +2211,15 @@ function CaseRoutesScreen({
 
 function DraftReportScreen({
   db,
+  walkthroughEnabled,
   services,
 }: {
   db: DossierDatabase;
+  walkthroughEnabled: boolean;
   services: AppServices;
 }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { incidentId = "" } = useParams();
   const factSetQuery = useQuery({
     queryKey: ["fact-set-summary", incidentId],
@@ -2016,6 +2237,7 @@ function DraftReportScreen({
     enabled: Boolean(incidentId),
   });
   const [formState, setFormState] = useState<DraftFormState | null>(null);
+  const autoDraftRequestedRef = useRef(false);
 
   const selectedRoute = routeSummaryQuery.data?.recommendations.find((route) => route.selected) ?? null;
 
@@ -2113,6 +2335,9 @@ function DraftReportScreen({
 
       return updated;
     },
+    onSuccess: () => {
+      void navigate(`/cases/${incidentId}/send`);
+    },
   });
 
   if (factSetQuery.isLoading || routeSummaryQuery.isLoading || draftQuery.isLoading) {
@@ -2139,22 +2364,28 @@ function DraftReportScreen({
     );
   }
 
+  useEffect(() => {
+    if (!factSetQuery.data?.fact_set || !selectedRoute) {
+      return;
+    }
+    if (formState || buildDraftMutation.isPending || draftQuery.data?.draft_packet || autoDraftRequestedRef.current) {
+      return;
+    }
+    autoDraftRequestedRef.current = true;
+    void buildDraftMutation.mutate();
+  }, [buildDraftMutation, draftQuery.data?.draft_packet, factSetQuery.data?.fact_set, formState, selectedRoute]);
+
   if (!formState) {
     return (
       <ScreenMessage
         title="Draft report"
-        body="No draft has been prepared for this case yet."
-        action={
-          <PrimaryButton
-            disabled={buildDraftMutation.isPending}
-            onClick={() => {
-              void buildDraftMutation.mutate();
-            }}
-          >
-            {buildDraftMutation.isPending ? "Preparing draft" : "Build draft"}
-          </PrimaryButton>
+        body={buildDraftMutation.error ? "Draft generation failed. Retry to continue." : "Creating your report from saved facts and selected route."}
+        action={buildDraftMutation.error ? <PrimaryButton onClick={() => void buildDraftMutation.mutate()}>Retry draft</PrimaryButton> : null}
+        footer={
+          <>
+            {buildDraftMutation.error ? <InlineError message="Draft report could not be prepared right now." /> : null}
+          </>
         }
-        footer={buildDraftMutation.error ? <InlineError message="Draft report could not be prepared right now." /> : null}
       />
     );
   }
@@ -2165,6 +2396,14 @@ function DraftReportScreen({
         <h1 className="screen-title">Draft report</h1>
         <p className="screen-body">Review and edit the report before sending or handing it off.</p>
       </header>
+
+      {walkthroughEnabled ? (
+        <WalkthroughHint
+          step={6}
+          title="Review report draft"
+          body='Edit the text if needed, then press "Save report and continue".'
+        />
+      ) : null}
 
       <section className="settings-card">
         <dl className="detail-list">
@@ -2247,18 +2486,14 @@ function DraftReportScreen({
 
       <div className="button-row">
         <PrimaryButton
+          className={walkthroughEnabled ? "walkthrough-target" : undefined}
           disabled={approveMutation.isPending}
           onClick={() => {
             void approveMutation.mutate();
           }}
         >
-          {approveMutation.isPending
-            ? "Approving draft"
-            : draftQuery.data?.draft_packet?.approved
-              ? "Draft approved"
-              : "Approve draft"}
+          {approveMutation.isPending ? "Saving report" : "Save report and continue"}
         </PrimaryButton>
-        <LinkButton to={`/cases/${incidentId}/send`}>Send or hand off</LinkButton>
         <LinkButton to={`/cases/${incidentId}/routes`}>Back to where to report</LinkButton>
         {approveMutation.error ? <InlineError message="Draft approval did not complete." /> : null}
       </div>
@@ -2269,9 +2504,11 @@ function DraftReportScreen({
 function SendHandoffScreen({
   db,
   services,
+  walkthroughEnabled,
 }: {
   db: DossierDatabase;
   services: AppServices;
+  walkthroughEnabled: boolean;
 }) {
   const { incidentId = "" } = useParams();
   const caseSummaryQuery = useQuery({
@@ -2324,6 +2561,14 @@ function SendHandoffScreen({
         <p className="screen-body">Send this report where supported, or hand off the packet with proof.</p>
       </header>
 
+      {walkthroughEnabled ? (
+        <WalkthroughHint
+          step={7}
+          title="Send or share"
+          body="Choose an action card to open a site, email, call, share, or export."
+        />
+      ) : null}
+
       <section className="settings-card">
         <h2>Before you send</h2>
         <ul className="inline-list">
@@ -2361,6 +2606,7 @@ function SendHandoffScreen({
         incidentId={incidentId}
         selectedRoute={selectedRoute}
         services={services}
+        walkthroughEnabled={walkthroughEnabled}
       />
 
       <div className="button-row">
@@ -2378,12 +2624,14 @@ function SendActionPanel({
   incidentId,
   selectedRoute,
   services,
+  walkthroughEnabled = false,
 }: {
   approvedDraft: { subject: string; body: string } | null;
   db: DossierDatabase;
   incidentId: string;
   selectedRoute: RouteRecommendationRecord;
   services: AppServices;
+  walkthroughEnabled?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [actionNote, setActionNote] = useState<string | null>(null);
@@ -2458,7 +2706,7 @@ function SendActionPanel({
       ) : null}
       <section className="action-grid">
         <button
-          className="action-card"
+          className={walkthroughEnabled ? "action-card walkthrough-target" : "action-card"}
           disabled={!selectedRoute.complaint_url}
           onClick={() => {
             if (!selectedRoute.complaint_url) {
@@ -2477,7 +2725,7 @@ function SendActionPanel({
           type="button"
         >
           <strong>Open official form</strong>
-          <span>{selectedRoute.complaint_url ? "Open site ➡️" : "No official form listed for this option."}</span>
+          <span>{selectedRoute.complaint_url ? "Open site 🌐" : "No official form listed for this option."}</span>
         </button>
 
         <button
@@ -2775,9 +3023,11 @@ function ProofActionScreen({ db }: { db: DossierDatabase }) {
 function ExportCaseFileScreen({
   db,
   services,
+  walkthroughEnabled,
 }: {
   db: DossierDatabase;
   services: AppServices;
+  walkthroughEnabled: boolean;
 }) {
   const queryClient = useQueryClient();
   const { incidentId = "" } = useParams();
@@ -2855,9 +3105,17 @@ function ExportCaseFileScreen({
         <p className="screen-body">Create a packet with evidence, transcript, report options, draft, and log.</p>
       </header>
 
+      {walkthroughEnabled ? (
+        <WalkthroughHint
+          step={8}
+          title="Download packet"
+          body='Press "Export ZIP" for a full portable case file, or "Export PDF" for a report packet.'
+        />
+      ) : null}
+
       <section className="action-grid">
         <button
-          className="action-card"
+          className={walkthroughEnabled ? "action-card walkthrough-target" : "action-card"}
           onClick={() => {
             void exportPacket("pdf");
           }}
@@ -2887,7 +3145,15 @@ function ExportCaseFileScreen({
   );
 }
 
-function CaseFileScreen({ db }: { db: DossierDatabase }) {
+function CaseFileScreen({
+  db,
+  demoCaseId,
+  walkthroughEnabled,
+}: {
+  db: DossierDatabase;
+  demoCaseId: string | null;
+  walkthroughEnabled: boolean;
+}) {
   const { incidentId = "" } = useParams();
   const [showFullLog, setShowFullLog] = useState(false);
   const caseSummaryQuery = useQuery({
@@ -2912,6 +3178,7 @@ function CaseFileScreen({ db }: { db: DossierDatabase }) {
 
   const summary = caseSummaryQuery.data;
   const selectedRoute = summary.routes.find((route) => route.selected) ?? null;
+  const isDemoCase = Boolean(demoCaseId) && summary.incident.id === demoCaseId;
 
   return (
     <main className="screen">
@@ -2919,6 +3186,26 @@ function CaseFileScreen({ db }: { db: DossierDatabase }) {
         <h1 className="screen-title">Case file</h1>
         <p className="screen-body">Review the full case record.</p>
       </header>
+
+      {walkthroughEnabled && isDemoCase ? (
+        <section className="settings-card settings-card--walkthrough settings-card--highlight">
+          <h2>Demo flow</h2>
+          <ol className="walkthrough-list">
+            <li>
+              <span className="walkthrough-list__number">3</span>
+              <span>Review transcript and facts in this sample case.</span>
+            </li>
+            <li>
+              <span className="walkthrough-list__number">4</span>
+              <span>Open report options, draft, send, and export to see the full process.</span>
+            </li>
+            <li>
+              <span className="walkthrough-list__number">5</span>
+              <span>Return to Cases and delete this demo case when finished.</span>
+            </li>
+          </ol>
+        </section>
+      ) : null}
 
       <section className="case-card">
         <dl className="detail-list">
@@ -3056,7 +3343,7 @@ function CaseFileScreen({ db }: { db: DossierDatabase }) {
               .map((entry) => (
                 <li key={entry.id}>
                   <strong>{entry.action}</strong>
-                  <span>{new Date(entry.created_at).toLocaleString()}</span>
+                  <span>{formatLocalDateTime(entry.created_at)}</span>
                 </li>
               ))}
           </ol>
@@ -3072,22 +3359,24 @@ function SettingsScreen({
   biometricEnabled,
   captureBriefSeen,
   currentTheme,
+  fullAppWalkthroughEnabled,
   lockConfigured,
   onLockNow,
+  onFullAppWalkthroughEnabled,
   onRequireUnlockOnOpenChange,
   onResetCaptureBrief,
-  onResetQuickGuide,
   onThemeChange,
   requireUnlockOnOpen,
 }: {
   biometricEnabled: boolean;
   captureBriefSeen: boolean;
   currentTheme: ThemeMode;
+  fullAppWalkthroughEnabled: boolean;
   lockConfigured: boolean;
   onLockNow: () => Promise<void>;
+  onFullAppWalkthroughEnabled: (enabled: boolean) => Promise<void>;
   onRequireUnlockOnOpenChange: (requireUnlockOnOpen: boolean) => Promise<void>;
   onResetCaptureBrief: () => Promise<void>;
-  onResetQuickGuide: () => Promise<void>;
   onThemeChange: (theme: ThemeMode) => Promise<void>;
   requireUnlockOnOpen: boolean;
 }) {
@@ -3102,7 +3391,7 @@ function SettingsScreen({
         <p>This MVP keeps captures and case files private to this device.</p>
       </section>
       <section className="settings-card">
-        <h2>Theme</h2>
+        <h2>Theme 🎨</h2>
         <div className="segmented-control" role="group" aria-label="Theme">
           <button
             className={currentTheme === "slate" ? "segmented-control__button is-active" : "segmented-control__button"}
@@ -3126,18 +3415,10 @@ function SettingsScreen({
       </section>
       <section className="settings-card">
         <h2>Quick guide</h2>
-        <p>Need a reminder? Reopen the startup guide or show the capture reminder card again.</p>
+        <p>Show reminders that explain each step while you use the app.</p>
         <p>Capture reminder: {captureBriefSeen ? "Hidden after first use" : "Will show on Capture screen"}</p>
+        <p>App walkthrough: {fullAppWalkthroughEnabled ? "On" : "Off"}</p>
         <div className="button-row">
-          <button
-            className="secondary-button"
-            onClick={() => {
-              void onResetQuickGuide();
-            }}
-            type="button"
-          >
-            Show startup guide
-          </button>
           <button
             className="secondary-button"
             onClick={() => {
@@ -3147,6 +3428,16 @@ function SettingsScreen({
           >
             Show capture reminder
           </button>
+          <label className="field-checkbox">
+            <input
+              checked={fullAppWalkthroughEnabled}
+              onChange={(event) => {
+                void onFullAppWalkthroughEnabled(event.target.checked);
+              }}
+              type="checkbox"
+            />
+            <span>Show guided walkthrough on every app start</span>
+          </label>
         </div>
       </section>
       <section className="settings-card">
@@ -3455,17 +3746,38 @@ function ScreenMessage({
   );
 }
 
+function WalkthroughHint({
+  body,
+  step,
+  title,
+}: {
+  body: string;
+  step: number;
+  title: string;
+}) {
+  return (
+    <section className="settings-card settings-card--walkthrough settings-card--highlight" aria-live="polite">
+      <h2>
+        Step {step}: {title}
+      </h2>
+      <p>{body}</p>
+    </section>
+  );
+}
+
 function PrimaryButton({
+  className,
   children,
   disabled,
   onClick,
 }: {
+  className?: string;
   children: ReactNode;
   disabled?: boolean;
   onClick: () => void;
 }) {
   return (
-    <button className="primary-button" disabled={disabled} onClick={onClick} type="button">
+    <button className={className ? `primary-button ${className}` : "primary-button"} disabled={disabled} onClick={onClick} type="button">
       {children}
     </button>
   );
@@ -3562,9 +3874,9 @@ function InlineNote({ message }: { message: string }) {
   return <p className="inline-note">{message}</p>;
 }
 
-function LinkButton({ children, to }: { children: ReactNode; to: string }) {
+function LinkButton({ children, className, to }: { children: ReactNode; className?: string; to: string }) {
   return (
-    <Link className="secondary-button" to={to}>
+    <Link className={className ? `secondary-button ${className}` : "secondary-button"} to={to}>
       {children}
     </Link>
   );
@@ -3586,6 +3898,7 @@ function formatDuration(durationMs: number) {
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
   return `00:${minutes}:${seconds}`;
 }
+
 
 function formatTimestampMs(durationMs: number) {
   const totalSeconds = Math.floor(durationMs / 1000);
@@ -3625,6 +3938,25 @@ function formatProgressBytes(loadedBytes: number | null, totalBytes: number | nu
   }
 
   return `${formatBytes(loadedBytes)} of ${formatBytes(totalBytes)}`;
+}
+
+function formatLocalDateTime(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timeZoneName: "short",
+  }).format(parsed);
 }
 
 function formatBytes(value: number) {

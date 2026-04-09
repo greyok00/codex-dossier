@@ -1,39 +1,67 @@
 :root {
   color-scheme: dark;
-  --font-ui: "Inter Variable", "SF Pro Display", "Segoe UI", sans-serif;
-  --font-display: "Sora", "Avenir Next", "Segoe UI", sans-serif;
-  --bg: #0b0d10;
-  --panel: rgba(17, 20, 25, 0.9);
-  --panel-solid: #14181f;
-  --panel-alt: #1a2029;
-  --text: #f0f3f8;
-  --muted: #9ba7b8;
-  --border: rgba(160, 173, 190, 0.22);
-  --accent: #63b6f6;
-  --accent-strong: #86d4ff;
-  --error: #ff9c8f;
-  --shadow: 0 14px 38px rgba(0, 0, 0, 0.36);
+  --font-ui: "Manrope Variable", "Inter Variable", "SF Pro Display", "Segoe UI", sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --bg: #100d0b;
+  --panel: #1f1712;
+  --panel-solid: #1f1712;
+  --panel-alt: #2a2019;
+  --text: #f0e7da;
+  --muted: #b8a995;
+  --border: #5e4b37;
+  --accent: #d0a673;
+  --accent-strong: #f0c897;
+  --accent-ink: #23160a;
+  --ai-accent: #7a5f41;
+  --error: #f1a08d;
+  --shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
+  --space-screen: 24px;
+  --space-block: 16px;
+  --space-card: 18px;
+  --title-size: clamp(1.9rem, 5.2vw, 2.7rem);
+  --title-line: 1.04;
+  --title-track: -0.018em;
+  --body-size: 1rem;
+  --body-line: 1.56;
+  --label-track: 0.1em;
+  --label-size: 0.84rem;
+  --card-radius: 16px;
   font-family: var(--font-ui);
   background:
-    radial-gradient(1100px 600px at 20% -10%, rgba(52, 93, 125, 0.34), transparent 40%),
-    linear-gradient(180deg, #0b0d10 0%, #0a0f16 60%, #0b0e13 100%);
+    radial-gradient(920px 460px at 82% -8%, rgba(86, 167, 224, 0.2), transparent 42%),
+    radial-gradient(1100px 600px at 20% -10%, rgba(139, 100, 60, 0.34), transparent 40%),
+    linear-gradient(180deg, #100d0b 0%, #15100d 60%, #0f0b08 100%);
   color: var(--text);
 }
 
 :root[data-theme="paper"] {
   color-scheme: light;
-  --bg: #eef1f4;
-  --panel: rgba(255, 255, 255, 0.92);
+  --font-display: "Manrope Variable", "Inter Variable", "Segoe UI", sans-serif;
+  --bg: #edf1f5;
+  --panel: #ffffff;
   --panel-solid: #ffffff;
-  --panel-alt: #f7f8fa;
-  --text: #182028;
-  --muted: #657483;
-  --border: rgba(24, 32, 40, 0.12);
-  --accent: #0d5f82;
-  --accent-strong: #14455d;
-  --error: #b33a2c;
-  --shadow: 0 24px 72px rgba(29, 42, 56, 0.08);
-  background: linear-gradient(180deg, #f8fafb 0%, #eef1f4 45%, #e8ecef 100%);
+  --panel-alt: #f5f8fc;
+  --text: #1c2733;
+  --muted: #586a7c;
+  --border: #c9d7e7;
+  --accent: #2f75ba;
+  --accent-strong: #205a92;
+  --accent-ink: #f8fbff;
+  --ai-accent: #3a90db;
+  --error: #b03b2d;
+  --shadow: 0 14px 30px rgba(21, 45, 72, 0.08);
+  --space-screen: 20px;
+  --space-block: 14px;
+  --space-card: 16px;
+  --title-size: clamp(1.75rem, 4.6vw, 2.35rem);
+  --title-line: 1.08;
+  --title-track: -0.012em;
+  --body-size: 0.97rem;
+  --body-line: 1.5;
+  --label-track: 0.06em;
+  --label-size: 0.8rem;
+  --card-radius: 14px;
+  background: linear-gradient(180deg, #f8fbff 0%, #edf1f5 45%, #e6ebf0 100%);
 }
 
 * {
@@ -72,8 +100,8 @@ button {
   place-items: center;
   padding: 32px 20px;
   background:
-    radial-gradient(900px 420px at 50% -10%, rgba(110, 177, 235, 0.18), transparent 45%),
-    linear-gradient(180deg, rgba(9, 12, 18, 0.94), rgba(10, 12, 16, 0.98));
+    radial-gradient(900px 420px at 50% -10%, rgba(182, 136, 89, 0.14), transparent 45%),
+    linear-gradient(180deg, rgba(18, 13, 10, 0.94), rgba(16, 12, 10, 0.98));
 }
 
 .shell-card {
@@ -81,11 +109,7 @@ button {
   padding: 32px 24px;
   border: 1px solid var(--border);
   border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 22%),
-    linear-gradient(135deg, rgba(127, 216, 244, 0.06), transparent 45%),
-    var(--panel);
-  backdrop-filter: blur(14px);
+  background: var(--panel);
   box-shadow: var(--shadow);
 }
 
@@ -111,10 +135,12 @@ button {
 
 .brand-lockup__wordmark {
   font-family: var(--font-display);
-  font-size: 1.25rem;
-  letter-spacing: 0.14em;
+  font-size: 1.22rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   line-height: 1;
   color: var(--text);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--ai-accent) 30%, transparent);
 }
 
 .eyebrow {
@@ -130,9 +156,10 @@ button {
 .screen-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 6vw, 3.25rem);
-  line-height: 0.95;
-  letter-spacing: -0.04em;
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  letter-spacing: var(--title-track);
+  font-weight: 700;
 }
 
 .shell-body,
@@ -151,8 +178,8 @@ button {
 
 .shell-body,
 .screen-body {
-  margin-top: 14px;
-  font-size: 1rem;
+  margin-top: 10px;
+  font-size: var(--body-size);
 }
 
 .shell-detail {
@@ -170,7 +197,7 @@ button {
 .settings-card,
 .empty-state {
   display: grid;
-  gap: 16px;
+  gap: var(--space-block);
 }
 
 .shell-actions {
@@ -182,6 +209,7 @@ button {
   gap: 8px;
   color: var(--muted);
   font-size: 0.92rem;
+  line-height: var(--body-line);
 }
 
 .field-checkbox {
@@ -223,12 +251,15 @@ button {
 
 .primary-button {
   width: 100%;
-  padding: 16px 18px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #66bef7, #8edcff);
-  color: #0a1824;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: var(--accent-ink);
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.012em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 10px 24px color-mix(in srgb, var(--accent) 32%, transparent);
 }
 
 .secondary-button {
@@ -236,13 +267,20 @@ button {
   justify-content: center;
   align-items: center;
   width: 100%;
-  padding: 16px 18px;
-  border-radius: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--panel-alt);
   color: var(--text);
-  font-weight: 700;
+  font-weight: 650;
   text-decoration: none;
+}
+
+.secondary-button--inline {
+  width: auto;
+  min-width: 86px;
+  padding: 8px 12px;
+  border-radius: 10px;
 }
 
 .danger-button {
@@ -283,8 +321,9 @@ button {
 }
 
 .segmented-control__button.is-active {
-  border-color: rgba(127, 216, 244, 0.5);
-  box-shadow: inset 0 0 0 1px rgba(127, 216, 244, 0.22);
+  border-color: color-mix(in srgb, var(--accent) 52%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel-alt));
 }
 
 .app-shell {
@@ -295,13 +334,13 @@ button {
 .app-shell__content {
   width: min(100%, 560px);
   margin: 0 auto;
-  padding: 24px 18px 120px;
+  padding: var(--space-screen) 18px 120px;
 }
 
 .screen {
   position: relative;
   width: 100%;
-  gap: 24px;
+  gap: var(--space-screen);
 }
 
 .screen--capture {
@@ -353,8 +392,8 @@ button {
   background:
     repeating-linear-gradient(
       90deg,
-      rgba(127, 216, 244, 0.03) 0,
-      rgba(127, 216, 244, 0.03) 8px,
+      color-mix(in srgb, var(--accent) 14%, transparent) 0,
+      color-mix(in srgb, var(--accent) 14%, transparent) 8px,
       transparent 8px,
       transparent 24px
     );
@@ -378,11 +417,17 @@ button {
   height: 260px;
   border-radius: 50%;
   background:
-    radial-gradient(circle at center, rgba(125, 186, 226, 0.08) 0%, rgba(125, 186, 226, 0.03) 50%, transparent 72%),
-    radial-gradient(circle at center, rgba(42, 54, 68, 0.22) 0%, transparent 64%);
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--accent) 28%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 12%, transparent) 50%,
+      transparent 72%
+    ),
+    radial-gradient(circle at center, color-mix(in srgb, var(--accent-ink) 22%, transparent) 0%, transparent 64%);
   box-shadow:
-    inset 0 0 0 1px rgba(120, 160, 190, 0.2),
-    0 0 0 14px rgba(120, 160, 190, 0.04),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent),
+    0 0 0 14px color-mix(in srgb, var(--accent) 10%, transparent),
+    0 0 66px color-mix(in srgb, var(--ai-accent) 16%, transparent),
     0 26px 56px rgba(0, 0, 0, 0.44);
   color: var(--text);
 }
@@ -392,8 +437,8 @@ button {
   position: absolute;
   inset: 24px;
   border-radius: 50%;
-  border: 1px solid rgba(127, 216, 244, 0.08);
-  box-shadow: 0 0 40px rgba(127, 216, 244, 0.08);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .capture-orb__core,
@@ -405,14 +450,20 @@ button {
 .capture-orb__core {
   width: 116px;
   height: 116px;
-  background: radial-gradient(circle at 35% 30%, rgba(234, 252, 255, 0.95), rgba(109, 197, 231, 0.82) 48%, rgba(22, 57, 76, 0.85) 100%);
-  box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.28), 0 0 44px rgba(127, 216, 244, 0.22);
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, white 82%, var(--accent) 18%) 0%,
+    color-mix(in srgb, var(--accent) 72%, white 28%) 48%,
+    color-mix(in srgb, var(--accent) 44%, #0e131c 56%) 100%
+  );
+  box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.28), 0 0 44px color-mix(in srgb, var(--accent) 36%, transparent);
 }
 
 .capture-orb__ring {
   width: 186px;
   height: 186px;
-  border: 1px solid rgba(127, 216, 244, 0.18);
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--ai-accent) 20%, transparent);
 }
 
 .capture-orb__label {
@@ -439,17 +490,76 @@ button {
 .quick-guide-card,
 .empty-state,
 .progress-panel {
-  padding: 18px;
-  border-radius: 16px;
+  padding: var(--space-card);
+  border-radius: var(--card-radius);
   border: 1px solid var(--border);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 16%),
-    var(--panel);
+  background: var(--panel);
   box-shadow: var(--shadow);
 }
 
 .case-card--subtle {
   background: var(--panel-alt);
+}
+
+.settings-card--highlight {
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+  background: color-mix(in srgb, var(--panel) 88%, var(--panel-alt));
+}
+
+.settings-card--walkthrough h2 {
+  margin: 0;
+}
+
+.walkthrough-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.walkthrough-list li,
+.walkthrough-list__item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  line-height: var(--body-line);
+}
+
+.walkthrough-list__item {
+  opacity: 0.72;
+}
+
+.walkthrough-list__item.is-active {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.walkthrough-list--compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.walkthrough-list__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+}
+
+.walkthrough-target {
+  position: relative;
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 36%, transparent),
+    var(--shadow);
+  animation: walkthroughPulse 1.7s ease-in-out infinite;
 }
 
 .progress-panel {
@@ -481,9 +591,9 @@ button {
 .capture-summary dt {
   margin-bottom: 4px;
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: var(--label-size);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--label-track);
 }
 
 .capture-summary dd {
@@ -545,7 +655,8 @@ button {
 .capture-summary h2,
 .empty-state h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.04rem;
+  letter-spacing: -0.01em;
 }
 
 .detail-list {
@@ -561,9 +672,9 @@ button {
 
 .detail-list dt {
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: var(--label-size);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--label-track);
 }
 
 .detail-list dd {
@@ -614,12 +725,10 @@ button {
   display: grid;
   gap: 8px;
   width: 100%;
-  padding: 18px;
+  padding: var(--space-card);
   border-radius: 12px;
   border: 1px solid var(--border);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 28%),
-    var(--panel);
+  background: var(--panel);
   color: var(--text);
   text-align: left;
   box-shadow: var(--shadow);
@@ -631,7 +740,7 @@ button {
 
 .action-card span {
   color: var(--muted);
-  line-height: 1.5;
+  line-height: var(--body-line);
 }
 
 .action-card:disabled {
@@ -650,7 +759,7 @@ button {
 .inline-list li,
 .pill-list li,
 .log-list li {
-  line-height: 1.5;
+  line-height: var(--body-line);
 }
 
 .pill-list {
@@ -689,7 +798,7 @@ button {
 
 .transcript-fulltext {
   margin: 0;
-  line-height: 1.7;
+  line-height: calc(var(--body-line) + 0.12);
   white-space: pre-wrap;
 }
 
@@ -729,12 +838,11 @@ button {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, rgba(5, 8, 12, 0), rgba(5, 8, 12, 0.94) 28%, rgba(5, 8, 12, 0.98) 100%);
-  backdrop-filter: blur(14px);
+  background: #0f0c09;
 }
 
 :root[data-theme="paper"] .bottom-nav {
-  background: linear-gradient(180deg, rgba(238, 241, 244, 0), rgba(238, 241, 244, 0.92) 28%, rgba(238, 241, 244, 0.98) 100%);
+  background: #e9eef4;
 }
 
 .bottom-nav__link {
@@ -747,6 +855,8 @@ button {
   text-decoration: none;
   color: var(--muted);
   border: 1px solid transparent;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .bottom-nav__link.is-active {
@@ -762,5 +872,15 @@ button {
   }
   50% {
     transform: scale(1.018);
+  }
+}
+
+@keyframes walkthroughPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
   }
 }

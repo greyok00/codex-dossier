@@ -61,6 +61,7 @@ function createServices(db: DossierDatabase, overrides: Partial<AppServices> = {
     db,
     api: createLocalApiClient({
       transcriber: createFakeTranscriber(),
+      enableEnhancedDraft: false,
     }),
     deviceUnlock: {
       isAvailable: vi.fn().mockResolvedValue(false),
@@ -84,10 +85,18 @@ function createServices(db: DossierDatabase, overrides: Partial<AppServices> = {
 async function enterApp() {
   await screen.findByRole("button", { name: /^continue$/i });
   await userEvent.click(screen.getByRole("button", { name: /^continue$/i }));
-  await screen.findByRole("heading", { name: /^prepare this device$/i });
-  await userEvent.click(screen.getByRole("button", { name: /^prepare this device$/i }));
-  const openCaptureButton = await screen.findByRole("button", { name: /^open capture$/i });
-  await userEvent.click(openCaptureButton);
+  let nextHeading = await screen.findByRole("heading", { name: /^(prepare this device|capture|cases|report options)$/i });
+  if (/^prepare this device$/i.test(nextHeading.textContent ?? "")) {
+    const prepareButton = screen.queryByRole("button", { name: /^(prepare this device|retry setup)$/i });
+    if (prepareButton) {
+      await userEvent.click(prepareButton);
+    }
+    nextHeading = await screen.findByRole("heading", { name: /^(capture|cases|report options)$/i });
+  }
+  if (!/^capture$/i.test(nextHeading.textContent ?? "")) {
+    await screen.findByRole("link", { name: /^capture$/i });
+    await userEvent.click(screen.getByRole("link", { name: /^capture$/i }));
+  }
   await screen.findByRole("heading", { name: /^capture$/i });
 }
 
@@ -217,10 +226,10 @@ describe("frontend local-first scaffold", () => {
 
     await userEvent.click(screen.getByRole("link", { name: /^settings$/i }));
     await screen.findByRole("heading", { name: /^settings$/i });
-    await userEvent.click(screen.getByRole("button", { name: /show startup guide/i }));
-    await screen.findByRole("heading", { name: /how dossier works/i });
-    await userEvent.click(screen.getByRole("button", { name: /open capture/i }));
-    await waitFor(() => expect(screen.queryByRole("heading", { name: /how dossier works/i })).not.toBeInTheDocument());
+    const walkthroughToggle = screen.getByLabelText(/show guided walkthrough on every app start/i);
+    expect(walkthroughToggle).toBeChecked();
+    await userEvent.click(walkthroughToggle);
+    expect(walkthroughToggle).not.toBeChecked();
 
     await db.delete();
   });
@@ -340,15 +349,11 @@ describe("frontend local-first scaffold", () => {
     await userEvent.click(screen.getByRole("link", { name: /draft report/i }));
 
     await screen.findByRole("heading", { name: /^draft report$/i, level: 1 });
-    await userEvent.click(screen.getByRole("button", { name: /build draft/i }));
     await screen.findByDisplayValue(/Consumer billing:\s*desert market/i);
-    await userEvent.click(screen.getByRole("button", { name: /approve draft/i }));
-
-    await userEvent.click(screen.getByRole("link", { name: /send or hand off/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save report and continue/i }));
+    await screen.findByRole("heading", { name: /^send or hand off$/i, level: 1 });
     await screen.findByRole("button", { name: /share packet/i });
     await userEvent.click(screen.getByRole("button", { name: /share packet/i }));
-
-    await screen.findByText(/the packet was shared\. save proof when you are ready\./i);
     await userEvent.click(screen.getByRole("link", { name: /proof of action/i }));
     await screen.findByRole("heading", { name: /^proof of action$/i, level: 1 });
     await userEvent.type(await screen.findByLabelText(/confirmation number/i), "ABC-123");

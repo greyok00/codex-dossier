@@ -26,7 +26,7 @@ export async function buildCasePdf(summary: CaseFileSummary) {
 
   drawLine("Dossier case packet", { bold: true, gapAfter: 28 });
   drawLine(`Case reference: ${summary.incident.id}`);
-  drawLine(`Created: ${new Date(summary.incident.created_at).toLocaleString()}`);
+  drawLine(`Created: ${formatLocalDateTime(summary.incident.created_at)}`);
   drawLine(`Case type: ${summary.fact_set?.incident_type ?? summary.incident.category ?? "Not set"}`);
   drawLine(`Location: ${summary.incident.location_address ?? "Not saved"}`, { gapAfter: 24 });
 
@@ -68,7 +68,7 @@ export async function buildCasePdf(summary: CaseFileSummary) {
 
   drawLine("Log", { bold: true, gapAfter: 20 });
   for (const entry of summary.custody_log.slice(-8)) {
-    drawLine(`${new Date(entry.created_at).toLocaleString()} - ${entry.action}`);
+    drawLine(`${formatLocalDateTime(entry.created_at)} - ${entry.action}`);
   }
 
   return pdf.save();
@@ -112,7 +112,7 @@ function buildCaseText(summary: CaseFileSummary) {
   const lines = [
     "Dossier case packet",
     `Case reference: ${summary.incident.id}`,
-    `Created: ${summary.incident.created_at}`,
+    `Created: ${formatLocalDateTime(summary.incident.created_at)}`,
     `Case type: ${summary.fact_set?.incident_type ?? summary.incident.category ?? "Not set"}`,
     `Location: ${summary.incident.location_address ?? "Not saved"}`,
     "",
@@ -129,4 +129,23 @@ function buildCaseText(summary: CaseFileSummary) {
   ];
 
   return lines.join("\n");
+}
+
+function formatLocalDateTime(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timeZoneName: "short",
+  }).format(parsed);
 }

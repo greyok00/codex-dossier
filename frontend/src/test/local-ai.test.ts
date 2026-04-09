@@ -140,4 +140,41 @@ describe("local deterministic AI helpers", () => {
     expect(factSet.places.join(" ").toLowerCase()).toContain("dallas");
     expect(factSet.key_facts.join(" ").toLowerCase()).toMatch(/police|broken into|break-in|burglary/);
   });
+
+  it("routes police misconduct complaints to official civil rights options without search links", () => {
+    const routes = buildDeterministicRouteRecommendations({
+      incident_id: crypto.randomUUID(),
+      fact_set: {
+        fact_set_id: crypto.randomUUID(),
+        incident_type: "civil_rights",
+        people: ["Officer"],
+        places: ["Phoenix, AZ"],
+        businesses: [],
+        phones: [],
+        dates: ["April 9, 2026"],
+        amounts: [],
+        timeline: [
+          {
+            time_label: "00:00",
+            description: "I need to file a complaint against a police officer and the department.",
+          },
+        ],
+        key_facts: ["I need to file a complaint against a police officer and the department."],
+        reviewed_by_user: true,
+      },
+      context: {
+        location_address: "Phoenix, AZ",
+        location_lat: 33.4484,
+        location_lng: -112.074,
+        confirmed_place_name: null,
+        confirmed_place_phone: null,
+        transcript_excerpt: "I need to file a complaint against a police officer and the department.",
+      },
+    });
+
+    expect(routes.some((route) => /justice/i.test(route.source_label))).toBe(true);
+    expect(routes.some((route) => /civil rights/i.test(route.destination_name_snapshot))).toBe(true);
+    expect(routes.some((route) => /google\.com\/search/i.test(route.complaint_url ?? ""))).toBe(false);
+    expect(routes.some((route) => /google\.com\/search/i.test(route.source_url ?? ""))).toBe(false);
+  });
 });

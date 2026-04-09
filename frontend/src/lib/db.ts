@@ -330,6 +330,9 @@ const LAST_OPEN_PATH_KEY = "last_open_path";
 const CLOUD_AI_ENABLED_KEY = "cloud_ai_enabled";
 const QUICK_GUIDE_SEEN_KEY = "quick_guide_seen";
 const CAPTURE_BRIEF_SEEN_KEY = "capture_brief_seen";
+const DRAFT_WALKTHROUGH_SEEN_KEY = "draft_walkthrough_seen";
+const FULL_APP_WALKTHROUGH_ENABLED_KEY = "full_app_walkthrough_enabled";
+const DEMO_WALKTHROUGH_CASE_ID_KEY = "demo_walkthrough_case_id";
 
 export interface BootstrapState {
   theme: ThemeMode;
@@ -345,6 +348,8 @@ export interface BootstrapState {
   cloud_ai_enabled: boolean;
   quick_guide_seen: boolean;
   capture_brief_seen: boolean;
+  draft_walkthrough_seen: boolean;
+  full_app_walkthrough_enabled: boolean;
 }
 
 export async function loadBootstrapState(db: DossierDatabase): Promise<BootstrapState> {
@@ -362,6 +367,8 @@ export async function loadBootstrapState(db: DossierDatabase): Promise<Bootstrap
     cloudAiEnabled,
     quickGuideSeen,
     captureBriefSeen,
+    draftWalkthroughSeen,
+    fullAppWalkthroughEnabled,
   ] =
     await Promise.all([
       getSetting<ThemeMode>(db, THEME_KEY),
@@ -377,6 +384,8 @@ export async function loadBootstrapState(db: DossierDatabase): Promise<Bootstrap
       getSetting<boolean>(db, CLOUD_AI_ENABLED_KEY),
       getSetting<boolean>(db, QUICK_GUIDE_SEEN_KEY),
       getSetting<boolean>(db, CAPTURE_BRIEF_SEEN_KEY),
+      getSetting<boolean>(db, DRAFT_WALKTHROUGH_SEEN_KEY),
+      getSetting<boolean>(db, FULL_APP_WALKTHROUGH_ENABLED_KEY),
     ]);
 
   const ensuredInstallId = installId ?? crypto.randomUUID();
@@ -398,6 +407,8 @@ export async function loadBootstrapState(db: DossierDatabase): Promise<Bootstrap
     cloud_ai_enabled: cloudAiEnabled ?? false,
     quick_guide_seen: quickGuideSeen ?? false,
     capture_brief_seen: captureBriefSeen ?? false,
+    draft_walkthrough_seen: draftWalkthroughSeen ?? false,
+    full_app_walkthrough_enabled: fullAppWalkthroughEnabled ?? true,
   };
 }
 
@@ -458,6 +469,14 @@ export async function setCaptureBriefSeen(db: DossierDatabase, captureBriefSeen:
   await setSetting(db, CAPTURE_BRIEF_SEEN_KEY, captureBriefSeen);
 }
 
+export async function setDraftWalkthroughSeen(db: DossierDatabase, draftWalkthroughSeen: boolean) {
+  await setSetting(db, DRAFT_WALKTHROUGH_SEEN_KEY, draftWalkthroughSeen);
+}
+
+export async function setFullAppWalkthroughEnabled(db: DossierDatabase, fullAppWalkthroughEnabled: boolean) {
+  await setSetting(db, FULL_APP_WALKTHROUGH_ENABLED_KEY, fullAppWalkthroughEnabled);
+}
+
 export async function storeSession(db: DossierDatabase, session: StoredSession) {
   await db.sessions.put(session);
 }
@@ -468,6 +487,298 @@ export async function clearSession(db: DossierDatabase) {
 
 export async function listRecentIncidents(db: DossierDatabase, limit = 10) {
   return db.incidents.orderBy("created_at").reverse().limit(limit).toArray();
+}
+
+export async function ensureDemoWalkthroughCase(db: DossierDatabase): Promise<string> {
+  const existingId = await getSetting<string>(db, DEMO_WALKTHROUGH_CASE_ID_KEY);
+  if (existingId) {
+    const existingIncident = await db.incidents.get(existingId);
+    if (existingIncident) {
+      return existingId;
+    }
+  }
+
+  const now = new Date().toISOString();
+  const incidentId = crypto.randomUUID();
+  const sourceEvidenceId = crypto.randomUUID();
+  const transcriptEvidenceId = crypto.randomUUID();
+  const factSetId = crypto.randomUUID();
+  const routeId = crypto.randomUUID();
+  const draftId = crypto.randomUUID();
+  const proofId = crypto.randomUUID();
+
+  const transcriptText =
+    "I was charged twice by Desert Market in Phoenix, Arizona. The manager refused to refund the $85 charge.";
+
+  const incident: IncidentRecord = {
+    id: incidentId,
+    title: "Demo case: double charge at Desert Market",
+    status: "review",
+    category: "consumer_billing",
+    created_at: now,
+    updated_at: now,
+    location_lat: 33.4484,
+    location_lng: -112.074,
+    location_address: "Phoenix, AZ 85004",
+    place_id: "demo-place-desert-market",
+    place_name: "Desert Market",
+    place_phone: "(602) 555-0191",
+    current_route_snapshot_id: routeId,
+    current_draft_packet_id: draftId,
+    current_submission_proof_id: proofId,
+    current_export_evidence_id: null,
+  };
+
+  const sourceBytesText = "Demo source capture placeholder for walkthrough.";
+  const sourceBytes = new TextEncoder().encode(sourceBytesText);
+  const sourceBuffer = sourceBytes.buffer.slice(sourceBytes.byteOffset, sourceBytes.byteOffset + sourceBytes.byteLength);
+
+  const sourceEvidence: EvidenceItemRecord = {
+    id: sourceEvidenceId,
+    incident_id: incidentId,
+    type: "audio",
+    original: true,
+    original_bytes: sourceBuffer,
+    mime_type: "audio/webm",
+    size_bytes: sourceBytes.byteLength,
+    sha256: "6b4f8e8de8f7c6f63f7d215aa4af7f50f6bc8c3866bf884f40f6d5d74457f706",
+    integrity_status: "verified",
+    captured_at: now,
+    created_at: now,
+    duration_ms: 9400,
+    device_info_json: {
+      platform: "web",
+      app_version: "demo",
+    },
+    location_json: {
+      lat: 33.4484,
+      lng: -112.074,
+      address: "Phoenix, AZ 85004",
+    },
+    source_evidence_id: null,
+  };
+
+  const transcript: TranscriptRecord = {
+    id: transcriptEvidenceId,
+    incident_id: incidentId,
+    source_evidence_id: sourceEvidenceId,
+    full_text: transcriptText,
+    language: "en",
+    segment_count: 2,
+    model_metadata_json: {
+      mode: "demo",
+      model: "Xenova/whisper-base.en",
+    },
+    warnings_json: [],
+    created_at: now,
+    updated_at: now,
+  };
+
+  const transcriptEvidence: EvidenceItemRecord = {
+    id: transcriptEvidenceId,
+    incident_id: incidentId,
+    type: "transcript",
+    original: false,
+    original_bytes: null,
+    mime_type: "text/plain",
+    size_bytes: new Blob([transcriptText]).size,
+    sha256: "",
+    integrity_status: "pending",
+    captured_at: now,
+    created_at: now,
+    duration_ms: null,
+    device_info_json: {},
+    location_json: {
+      lat: null,
+      lng: null,
+      address: null,
+    },
+    source_evidence_id: sourceEvidenceId,
+  };
+
+  const transcriptSegments: TranscriptSegmentRecord[] = [
+    {
+      id: `${transcriptEvidenceId}:0`,
+      transcript_id: transcriptEvidenceId,
+      incident_id: incidentId,
+      sequence: 0,
+      start_ms: 0,
+      end_ms: 4200,
+      speaker_label: "Speaker 1",
+      text: "I was charged twice by Desert Market in Phoenix, Arizona.",
+      confidence: 0.92,
+    },
+    {
+      id: `${transcriptEvidenceId}:1`,
+      transcript_id: transcriptEvidenceId,
+      incident_id: incidentId,
+      sequence: 1,
+      start_ms: 4200,
+      end_ms: 9400,
+      speaker_label: "Speaker 1",
+      text: "The manager refused to refund the $85 charge.",
+      confidence: 0.9,
+    },
+  ];
+
+  const factSet: FactSetRecord = {
+    id: factSetId,
+    incident_id: incidentId,
+    transcript_evidence_id: transcriptEvidenceId,
+    incident_type: "consumer_billing",
+    people: ["Store manager"],
+    places: ["Phoenix, AZ"],
+    businesses: ["Desert Market"],
+    phones: ["(602) 555-0191"],
+    dates: [new Date(now).toLocaleDateString()],
+    amounts: ["$85"],
+    timeline: [
+      { time_label: "00:00", description: "Witness reports double charge at Desert Market." },
+      { time_label: "00:04", description: "Manager refused refund request for $85." },
+    ],
+    key_facts: [
+      "Customer reports being charged twice at Desert Market.",
+      "Requested refund of $85 was denied by store manager.",
+    ],
+    reviewed_by_user: true,
+    confirmed_fields: ["incident_type", "businesses", "places", "amounts", "key_facts"],
+    edited_fields: [],
+    model_metadata_json: {
+      mode: "demo",
+      model: "deterministic-facts-v1",
+    },
+    warnings_json: [],
+    created_at: now,
+    updated_at: now,
+  };
+
+  const route: RouteRecommendationRecord = {
+    id: routeId,
+    incident_id: incidentId,
+    destination_id: "az-ag-consumer-complaint",
+    destination_name_snapshot: "Arizona Consumer Complaint",
+    destination_type_snapshot: "gov_state",
+    route_group: "State",
+    rank: 1,
+    reason: "State attorney general office handles consumer billing complaints for Arizona businesses.",
+    source_label: "azag.gov",
+    source_url: "https://consumer-complaint.azag.gov/",
+    trust_level: "official",
+    last_verified_date: new Date().toISOString().slice(0, 10),
+    complaint_url: "https://consumer-complaint.azag.gov/",
+    email: null,
+    phone: "(602) 542-5763",
+    mailing_address: "2005 N Central Ave, Phoenix, AZ 85004",
+    intake_methods_snapshot: ["web_form", "phone"],
+    required_documents_snapshot: ["Case summary", "Date and amount", "Proof packet"],
+    available_actions: ["open_form", "call", "share", "export_pdf", "export_zip"],
+    selected: true,
+    created_at: now,
+    updated_at: now,
+  };
+
+  const draft: DraftPacketRecord = {
+    id: draftId,
+    incident_id: incidentId,
+    route_recommendation_id: routeId,
+    subject: "Consumer billing complaint: Desert Market double charge",
+    body:
+      "I am filing a consumer billing complaint regarding Desert Market in Phoenix, Arizona.\n\n" +
+      "On the date of incident, I was charged twice for one transaction. I immediately requested a refund of $85, but the manager refused.\n\n" +
+      "I am requesting a review of this transaction and a refund of the duplicate charge. I have attached supporting details and evidence from my case packet.",
+    attachment_labels: ["Source capture", "Transcript", "Confirmed facts", "Proof packet"],
+    approved: true,
+    model_metadata_json: {
+      mode: "demo",
+      model: "template-draft-v1",
+    },
+    warnings_json: [],
+    created_at: now,
+    updated_at: now,
+  };
+
+  const proof: SubmissionProofRecord = {
+    id: proofId,
+    incident_id: incidentId,
+    route_recommendation_id: routeId,
+    method: "web_form",
+    status: "saved",
+    confirmation_number: "DEMO-12345",
+    notes: "Demo proof record for walkthrough.",
+    external_reference_url: "https://consumer-complaint.azag.gov/",
+    attachment_labels: ["Draft report", "Proof packet"],
+    created_at: now,
+    updated_at: now,
+  };
+
+  const custody: CustodyLogRecord[] = [
+    {
+      id: crypto.randomUUID(),
+      incident_id: incidentId,
+      evidence_item_id: sourceEvidenceId,
+      action: "evidence_created",
+      actor: "system",
+      created_at: now,
+      details_json: {
+        event: "evidence_created",
+        evidence_id: sourceEvidenceId,
+      },
+    },
+    {
+      id: crypto.randomUUID(),
+      incident_id: incidentId,
+      evidence_item_id: transcriptEvidenceId,
+      action: "transcript_created",
+      actor: "ai",
+      created_at: now,
+      details_json: {
+        event: "transcript_created",
+        transcript_evidence_id: transcriptEvidenceId,
+      },
+    },
+    {
+      id: crypto.randomUUID(),
+      incident_id: incidentId,
+      evidence_item_id: transcriptEvidenceId,
+      action: "facts_confirmed",
+      actor: "user",
+      created_at: now,
+      details_json: {
+        event: "facts_confirmed",
+        fact_set_id: factSetId,
+      },
+    },
+  ];
+
+  await db.transaction(
+    "rw",
+    [
+      db.incidents,
+      db.evidence_items,
+      db.transcripts,
+      db.transcript_segments,
+      db.fact_sets,
+      db.route_recommendations,
+      db.draft_packets,
+      db.submission_proofs,
+      db.custody_log,
+      db.settings,
+    ],
+    async () => {
+      await db.incidents.put(incident);
+      await db.evidence_items.bulkPut([sourceEvidence, transcriptEvidence]);
+      await db.transcripts.put(transcript);
+      await db.transcript_segments.bulkPut(transcriptSegments);
+      await db.fact_sets.put(factSet);
+      await db.route_recommendations.put(route);
+      await db.draft_packets.put(draft);
+      await db.submission_proofs.put(proof);
+      await db.custody_log.bulkPut(custody);
+      await setSetting(db, DEMO_WALKTHROUGH_CASE_ID_KEY, incidentId);
+    },
+  );
+
+  return incidentId;
 }
 
 export async function deleteIncidentCase(db: DossierDatabase, incidentId: string) {

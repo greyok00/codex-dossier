@@ -88,6 +88,12 @@ const BUSINESS_TYPE_KEYWORDS: Array<{ type: string; patterns: RegExp[] }> = [
   { type: "employer", patterns: [/\bemployer\b/iu, /\bmanager\b/iu, /\bpayroll\b/iu] },
   { type: "landlord", patterns: [/\blandlord\b/iu, /\bproperty manager\b/iu, /\brent\b/iu, /\bapartment\b/iu] },
   { type: "health_provider", patterns: [/\bclinic\b/iu, /\bhospital\b/iu, /\bdoctor\b/iu, /\bmedical\b/iu] },
+  {
+    type: "law_enforcement",
+    patterns: [/\bpolice\b/iu, /\bofficer\b/iu, /\bdepartment\b/iu, /\bsheriff\b/iu, /\binternal affairs\b/iu],
+  },
+  { type: "public_entity", patterns: [/\bcity\b/iu, /\bcounty\b/iu, /\bstate\b/iu, /\bpublic agency\b/iu] },
+  { type: "business", patterns: [/.*/u] },
   { type: "general_business", patterns: [/.*/u] },
 ];
 
@@ -99,14 +105,19 @@ export function buildDeterministicRouteRecommendations(input: {
   const categories = deriveCategories(input.fact_set, input.context.transcript_excerpt);
   const businessTypes = inferBusinessTypes(input.fact_set, input.context);
   const emergencyCase = categories.includes("emergency_safety");
+  const policeMisconductCase = categories.includes("police_misconduct");
   const { state, city } = inferStateCityContext(input);
   const builtRoutes: BuiltRoute[] = [];
 
-  if (emergencyCase) {
+  if (emergencyCase && !policeMisconductCase) {
     builtRoutes.push(...buildEmergencyRoutes(input, state, city));
   }
 
-  const businessRoute = emergencyCase ? null : buildBusinessRoute(input, state);
+  if (policeMisconductCase) {
+    builtRoutes.push(...buildPoliceMisconductRoutes(input, state, city));
+  }
+
+  const businessRoute = emergencyCase || policeMisconductCase ? null : buildBusinessRoute(input, state);
   if (businessRoute) {
     builtRoutes.push({
       recommendation: businessRoute,
@@ -143,7 +154,7 @@ export function buildDeterministicRouteRecommendations(input: {
     });
   }
 
-  const otherRoute = buildBetterBusinessRoute(input, categories);
+  const otherRoute = policeMisconductCase ? null : buildBetterBusinessRoute(input, categories);
   if (otherRoute) {
     builtRoutes.push({
       recommendation: otherRoute,
@@ -151,7 +162,7 @@ export function buildDeterministicRouteRecommendations(input: {
       relevance: 76,
     });
   }
-  builtRoutes.push(...buildFallbackRoutes(input, state));
+  builtRoutes.push(...buildFallbackRoutes(input, state, policeMisconductCase));
 
   const sortedByRelevance = builtRoutes
     .sort((left, right) => {
@@ -305,58 +316,10 @@ function buildEmergencyRoutes(
 
 function getLocalPoliceResource(state: string | null, city: string | null) {
   if (state && city) {
-    const key = `${city.trim().toLowerCase()}|${state.trim().toUpperCase()}`;
-    const route = VERIFIED_LOCAL_POLICE_ROUTES[key];
-    if (route) {
-      return {
-        source_label: route.source_label,
-        source_url: route.source_url,
-        complaint_url: route.complaint_url,
-        trust_level: "official" as const,
-      };
-    }
-
-    const query = encodeURIComponent(`${city} ${state} police department non-emergency report`);
-    return {
-      source_label: `${city}, ${state} police search`,
-      source_url: `https://www.google.com/search?q=${query}`,
-      complaint_url: `https://www.google.com/search?q=${query}`,
-      trust_level: "directory" as const,
-    };
+    return null;
   }
-
-  if (state) {
-    const query = encodeURIComponent(`${state} police department non-emergency report`);
-    return {
-      source_label: `${state} police search`,
-      source_url: `https://www.google.com/search?q=${query}`,
-      complaint_url: `https://www.google.com/search?q=${query}`,
-      trust_level: "directory" as const,
-    };
-  }
-
   return null;
 }
-
-const VERIFIED_LOCAL_POLICE_ROUTES: Record<
-  string,
-  {
-    source_label: string;
-    source_url: string;
-    complaint_url: string;
-  }
-> = {
-  "phoenix|AZ": {
-    source_label: "phoenix.gov",
-    source_url: "https://www.phoenix.gov/police/policereport",
-    complaint_url: "https://www.phoenix.gov/police/policereport",
-  },
-  "dallas|TX": {
-    source_label: "dallaspolice.net",
-    source_url: "https://dallaspolice.net/reports/Pages/coplogic.aspx",
-    complaint_url: "https://dallaspolice.net/reports/Pages/coplogic.aspx",
-  },
-};
 
 function buildRegistryRoute(entry: RegistryEntry, routeGroup: RouteGroup, rule: RegistryEntry["rules"][number]): RouteRecommendationDto {
   const intakeMethods = unique(entry.intakes.map((intake) => intake.intake_method));
@@ -441,9 +404,10 @@ function buildFallbackRoutes(
     context: RouteContext;
   },
   state: string | null,
+  policeMisconductCase: boolean,
 ): BuiltRoute[] {
   const routes: BuiltRoute[] = [];
-  const stateConsumerRoute = getStateConsumerRoute(state);
+  const stateConsumerRoute = policeMisconductCase ? getStatePoliceOversightRoute(state) : getStateConsumerRoute(state);
 
   routes.push({
     recommendation: {
@@ -471,31 +435,33 @@ function buildFallbackRoutes(
     relevance: 75,
   });
 
-  routes.push({
-    recommendation: {
-      id: crypto.randomUUID(),
-      destination_id: null,
-      destination_name_snapshot: "Business support and contact lookup",
-      destination_type_snapshot: "business",
-      route_group: "Business",
-      rank: 0,
-      reason: "If agency options are limited, contact the business directly with your saved proof packet.",
-      source_label: "Case details",
-      source_url: null,
-      trust_level: "directory",
-      last_verified_date: null,
-      complaint_url: null,
-      email: null,
-      phone: input.fact_set.phones[0] ?? input.context.confirmed_place_phone ?? null,
-      mailing_address: input.context.location_address,
-      intake_methods_snapshot: ["phone", "email"],
-      required_documents_snapshot: ["Proof packet", "Date", "Amount if relevant"],
-      available_actions: ["call", "share_packet", "export_packet", "save_for_later"],
-      selected: false,
-    },
-    priority: 45,
-    relevance: 74,
-  });
+  if (!policeMisconductCase) {
+    routes.push({
+      recommendation: {
+        id: crypto.randomUUID(),
+        destination_id: null,
+        destination_name_snapshot: "Business support and contact lookup",
+        destination_type_snapshot: "business",
+        route_group: "Business",
+        rank: 0,
+        reason: "If agency options are limited, contact the business directly with your saved proof packet.",
+        source_label: "Case details",
+        source_url: null,
+        trust_level: "directory",
+        last_verified_date: null,
+        complaint_url: null,
+        email: null,
+        phone: input.fact_set.phones[0] ?? input.context.confirmed_place_phone ?? null,
+        mailing_address: input.context.location_address,
+        intake_methods_snapshot: ["phone", "email"],
+        required_documents_snapshot: ["Proof packet", "Date", "Amount if relevant"],
+        available_actions: ["call", "share_packet", "export_packet", "save_for_later"],
+        selected: false,
+      },
+      priority: 45,
+      relevance: 74,
+    });
+  }
 
   return routes;
 }
@@ -524,14 +490,13 @@ function getStateConsumerRoute(state: string | null) {
   }
 
   if (state) {
-    const query = encodeURIComponent(`${state} attorney general consumer complaint`);
     return {
-      destination_name_snapshot: `${state} Attorney General complaint search`,
-      reason: "Use this state-specific search to find the official Attorney General complaint form.",
-      source_label: "google.com",
-      source_url: `https://www.google.com/search?q=${query}`,
-      complaint_url: `https://www.google.com/search?q=${query}`,
-      trust_level: "directory" as const,
+      destination_name_snapshot: `${state} state consumer office directory`,
+      reason: "Use this directory to find the official state office and complaint pages.",
+      source_label: "usa.gov",
+      source_url: "https://www.usa.gov/state-consumer",
+      complaint_url: "https://www.usa.gov/state-consumer",
+      trust_level: "official" as const,
     };
   }
 
@@ -543,6 +508,69 @@ function getStateConsumerRoute(state: string | null) {
     complaint_url: "https://www.usa.gov/state-consumer",
     trust_level: "official" as const,
   };
+}
+
+function getStatePoliceOversightRoute(state: string | null) {
+  if (state) {
+    return {
+      destination_name_snapshot: `${state} attorney general office directory`,
+      reason: "Use this directory to find your state attorney general office and complaint channels.",
+      source_label: "usa.gov",
+      source_url: "https://www.usa.gov/state-attorney-general",
+      complaint_url: "https://www.usa.gov/state-attorney-general",
+      trust_level: "official" as const,
+    };
+  }
+
+  return {
+    destination_name_snapshot: "State attorney general office directory",
+    reason: "Use this directory to find state attorney general offices and official complaint channels.",
+    source_label: "usa.gov",
+    source_url: "https://www.usa.gov/state-attorney-general",
+    complaint_url: "https://www.usa.gov/state-attorney-general",
+    trust_level: "official" as const,
+  };
+}
+
+function buildPoliceMisconductRoutes(
+  input: {
+    incident_id: string;
+    fact_set: FactSetDto;
+    context: RouteContext;
+  },
+  state: string | null,
+  city: string | null,
+): BuiltRoute[] {
+  return [
+    {
+      recommendation: {
+        id: crypto.randomUUID(),
+        destination_id: null,
+        destination_name_snapshot: city && state ? `${city}, ${state} police department complaint desk` : "Local police department complaint desk",
+        destination_type_snapshot: "law_enforcement",
+        route_group: "Local",
+        rank: 0,
+        reason:
+          city && state
+            ? `Start with the local department complaint channel for ${city}, ${state}, then keep the case packet for escalation.`
+            : "Start with the local department complaint channel, then keep the case packet for escalation.",
+        source_label: "Case location and transcript",
+        source_url: null,
+        trust_level: "unconfirmed",
+        last_verified_date: null,
+        complaint_url: null,
+        email: null,
+        phone: null,
+        mailing_address: input.context.location_address,
+        intake_methods_snapshot: ["phone", "in_person"],
+        required_documents_snapshot: ["Case summary", "Date and time", "Officer details if known", "Proof packet"],
+        available_actions: ["share_packet", "export_packet", "save_for_later"],
+        selected: false,
+      },
+      priority: 88,
+      relevance: 83,
+    },
+  ];
 }
 
 function ruleMatches(
@@ -627,6 +655,14 @@ function deriveCategories(factSet: FactSetDto, transcriptExcerpt: string | null)
   }
   if (/\bmurder\b|\bhomicide\b|\bshooting\b|\bweapon\b|\bassault\b|\battack\b|\bimmediate danger\b/iu.test(haystack)) {
     categories.add("emergency_safety");
+  }
+  if (
+    /\bpolice misconduct\b|\bcomplaint against (?:a |an )?police\b|\bcomplaint against (?:an |a )?officer\b|\bcomplaint against (?:the )?police\b|\bexcessive force\b|\bbrutality\b|\binternal affairs\b|\bcivilian review\b|\babuse of authority\b/iu.test(
+      haystack,
+    )
+  ) {
+    categories.add("police_misconduct");
+    categories.add("civil_rights");
   }
   if (/\bpolice report\b|\bbreak[- ]?in\b|\bbroken into\b|\bburglary\b|\bcar break[- ]?in\b|\brobbed\b|\brobbery\b|\bvandaliz/iu.test(haystack)) {
     categories.add("emergency_safety");

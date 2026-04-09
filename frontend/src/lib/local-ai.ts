@@ -35,23 +35,70 @@ export interface LocalTranscriber {
   transcribe(input: LocalTranscriberInput): Promise<LocalTranscriberOutput>;
 }
 
+interface LocalDraftEnhancer {
+  prepare?(input?: { onProgress?: (event: LocalAiProgressEvent) => void }): Promise<{ model: string; warnings: string[] }>;
+  improveDraft(input: {
+    factSet: FactSetDto;
+    route: {
+      destination_name_snapshot: string;
+      route_group: RouteGroup;
+      reason: string;
+      source_label: string;
+      trust_level: RouteTrustLevel;
+    };
+    draft: {
+      subject: string;
+      body: string;
+      attachment_labels: string[];
+    };
+  }): Promise<{
+    subject: string;
+    body: string;
+    model: string;
+    warnings: string[];
+  }>;
+}
+
 export function createLocalApiClient(options: {
   transcriber?: LocalTranscriber;
+  draftEnhancer?: LocalDraftEnhancer;
+  enableEnhancedDraft?: boolean;
   now?: () => string;
 } = {}): ApiClient {
   const transcriber = options.transcriber ?? createWhisperTinyTranscriber();
+  const draftEnhancer = options.draftEnhancer ?? createQwenDraftEnhancer();
+  const enableEnhancedDraft = options.enableEnhancedDraft ?? true;
   const now = options.now ?? (() => new Date().toISOString());
 
   return {
     async prepareLocalAi(input = {}) {
+      const prepWarnings: string[] = [];
       if (typeof transcriber.prepare === "function") {
-        return transcriber.prepare(
+        const prepared = await transcriber.prepare(
           input.on_progress
             ? {
                 onProgress: input.on_progress,
               }
             : undefined,
         );
+        if (enableEnhancedDraft && typeof draftEnhancer.prepare === "function") {
+          try {
+            const draftPrepared = await draftEnhancer.prepare(
+              input.on_progress
+                ? {
+                    onProgress: input.on_progress,
+                  }
+                : undefined,
+            );
+            prepWarnings.push(...draftPrepared.warnings);
+          } catch {
+            prepWarnings.push("Enhanced local writing could not be prepared. Using standard local draft mode.");
+          }
+        }
+        return {
+          ...prepared,
+          warnings: [...prepared.warnings, ...prepWarnings],
+        };
       }
 
       const preparedAt = now();
@@ -68,7 +115,7 @@ export function createLocalApiClient(options: {
         model: "deterministic-local-v1",
         prepared_at: preparedAt,
         cached: true,
-        warnings: [],
+        warnings: prepWarnings,
       };
     },
 
@@ -161,7 +208,29 @@ export function createLocalApiClient(options: {
 
     async draft(input) {
       const requestedAt = now();
-      const draftPacket = buildTemplateDraft(input.fact_set, input.route);
+      let draftPacket = buildTemplateDraft(input.fact_set, input.route);
+      let draftModel = "template-draft-v1";
+      const warnings: string[] = [];
+
+      if (enableEnhancedDraft) {
+        try {
+          const enhanced = await draftEnhancer.improveDraft({
+            factSet: input.fact_set,
+            route: input.route,
+            draft: draftPacket,
+          });
+          draftPacket = {
+            subject: sanitizeSubject(enhanced.subject, draftPacket.subject),
+            body: sanitizeBody(enhanced.body, draftPacket.body),
+            attachment_labels: draftPacket.attachment_labels,
+          };
+          draftModel = enhanced.model;
+          warnings.push(...enhanced.warnings);
+        } catch {
+          warnings.push("Enhanced local writing unavailable. Using standard local draft mode.");
+        }
+      }
+
       const completedAt = now();
 
       return {
@@ -176,7 +245,7 @@ export function createLocalApiClient(options: {
         },
         model_metadata: metadata({
           provider: "local",
-          model: "template-draft-v1",
+          model: draftModel,
           purpose: "draft",
           requestedAt,
           completedAt,
@@ -185,10 +254,251 @@ export function createLocalApiClient(options: {
             route: input.route,
           }).length,
         }),
+        warnings,
+      };
+    },
+  };
+}
+
+function createQwenDraftEnhancer(): LocalDraftEnhancer {
+  let generatorPromise: Promise<(prompt: string, options: Record<string, unknown>) => Promise<unknown>> | null = null;
+  const modelId = "Qwen/Qwen2.5-0.5B-Instruct";
+
+  return {
+    async prepare(input = {}) {
+      const available = await isBundledModelAvailable(modelId);
+      if (!available) {
+        input.onProgress?.({
+          stage: "load",
+          label: "Downloading local writing model for better report drafts.",
+          progress: 0,
+          loaded_bytes: null,
+          total_bytes: null,
+          file: null,
+          model: modelId,
+        });
+      }
+
+      await loadDraftGenerator(generatorPromise, modelId, input.onProgress).then((loaded) => {
+        generatorPromise ??= loaded.promise;
+      });
+
+      return {
+        model: modelId,
+        warnings: [],
+      };
+    },
+
+    async improveDraft(input) {
+      const available = await isBundledModelAvailable(modelId);
+      if (!available) {
+        // Fall through to loader with remote enabled so first-run downloads are allowed.
+      }
+
+      const loaded = await loadDraftGenerator(generatorPromise, modelId);
+      generatorPromise ??= loaded.promise;
+      const prompt = buildDraftEnhancePrompt(input);
+      const output = await loaded.instance(prompt, {
+        max_new_tokens: 320,
+        temperature: 0.2,
+        do_sample: false,
+        return_full_text: false,
+      });
+      const parsed = parseDraftEnhancerOutput(output);
+      if (!parsed) {
+        return {
+          subject: input.draft.subject,
+          body: input.draft.body,
+          model: "template-draft-v1",
+          warnings: ["Enhanced local writing did not return valid output. Using standard local draft mode."],
+        };
+      }
+
+      return {
+        subject: parsed.subject,
+        body: parsed.body,
+        model: modelId,
         warnings: [],
       };
     },
   };
+}
+
+async function loadDraftGenerator(
+  existing: Promise<(prompt: string, options: Record<string, unknown>) => Promise<unknown>> | null,
+  modelId: string,
+  onProgress?: (event: LocalAiProgressEvent) => void,
+) {
+  if (existing) {
+    const instance = await existing;
+    return { instance, promise: existing };
+  }
+
+  const promise = (async () => {
+    const transformers = await import("@huggingface/transformers");
+    transformers.env.useBrowserCache = true;
+    transformers.env.allowLocalModels = true;
+    transformers.env.allowRemoteModels = true;
+    transformers.env.localModelPath = "/models/";
+    if (transformers.env.backends?.onnx?.wasm) {
+      transformers.env.backends.onnx.wasm.numThreads = 1;
+      transformers.env.backends.onnx.wasm.proxy = false;
+      transformers.env.backends.onnx.wasm.wasmPaths = {
+        mjs: ortWasmMjsUrl,
+        wasm: ortWasmUrl,
+      };
+    }
+    const supportsWebGpu = typeof navigator !== "undefined" && Boolean((navigator as { gpu?: unknown }).gpu);
+    const instance = await transformers.pipeline("text-generation", modelId, {
+      device: supportsWebGpu ? "webgpu" : "wasm",
+      dtype: "q4",
+      progress_callback(progress) {
+        const mapped = mapTextGenProgressInfo(progress as Record<string, unknown>, modelId);
+        if (mapped) {
+          onProgress?.(mapped);
+        }
+      },
+    });
+    return instance as (prompt: string, options: Record<string, unknown>) => Promise<unknown>;
+  })();
+
+  const instance = await promise;
+  return {
+    instance,
+    promise,
+  };
+}
+
+function mapTextGenProgressInfo(progress: Record<string, unknown>, modelId: string): LocalAiProgressEvent | null {
+  const status = typeof progress.status === "string" ? progress.status : null;
+  if (!status) {
+    return null;
+  }
+
+  if (status === "ready") {
+    return {
+      stage: "ready",
+      label: "Local writing model is ready.",
+      progress: 100,
+      loaded_bytes: null,
+      total_bytes: null,
+      file: null,
+      model: modelId,
+    };
+  }
+
+  const progressValue = typeof progress.progress === "number" ? progress.progress : null;
+  return {
+    stage: "load",
+    label: "Downloading local writing model for better report drafts.",
+    progress: progressValue,
+    loaded_bytes: typeof progress.loaded === "number" ? progress.loaded : null,
+    total_bytes: typeof progress.total === "number" ? progress.total : null,
+    file: typeof progress.file === "string" ? progress.file : null,
+    model: modelId,
+  };
+}
+
+function buildDraftEnhancePrompt(input: {
+  factSet: FactSetDto;
+  route: {
+    destination_name_snapshot: string;
+    route_group: RouteGroup;
+    reason: string;
+    source_label: string;
+    trust_level: RouteTrustLevel;
+  };
+  draft: {
+    subject: string;
+    body: string;
+    attachment_labels: string[];
+  };
+}) {
+  const payload = {
+    fact_set: {
+      incident_type: input.factSet.incident_type,
+      key_facts: input.factSet.key_facts.slice(0, 6),
+      dates: input.factSet.dates.slice(0, 3),
+      amounts: input.factSet.amounts.slice(0, 3),
+      places: input.factSet.places.slice(0, 3),
+      businesses: input.factSet.businesses.slice(0, 3),
+    },
+    route: {
+      destination_name: input.route.destination_name_snapshot,
+      source_label: input.route.source_label,
+      trust_level: input.route.trust_level,
+    },
+    current_draft: input.draft,
+  };
+
+  return [
+    "You rewrite complaint drafts for clarity and professionalism.",
+    "Rules:",
+    "- Output only strict JSON with keys subject and body.",
+    "- Keep facts accurate. Do not invent new facts, links, agencies, or numbers.",
+    "- Keep plain language, serious tone, and concise paragraphs.",
+    "- Keep it ready to send.",
+    "",
+    JSON.stringify(payload),
+  ].join("\n");
+}
+
+function parseDraftEnhancerOutput(output: unknown) {
+  const text = extractGeneratedText(output);
+  if (!text) {
+    return null;
+  }
+
+  const jsonBlockMatch = text.match(/\{[\s\S]*\}/u);
+  if (!jsonBlockMatch) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(jsonBlockMatch[0]) as { subject?: unknown; body?: unknown };
+    if (typeof parsed.subject !== "string" || typeof parsed.body !== "string") {
+      return null;
+    }
+    return {
+      subject: parsed.subject.trim(),
+      body: parsed.body.trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function extractGeneratedText(output: unknown) {
+  if (typeof output === "string") {
+    return output;
+  }
+  if (Array.isArray(output) && output.length > 0) {
+    const first = output[0] as { generated_text?: unknown };
+    if (typeof first?.generated_text === "string") {
+      return first.generated_text;
+    }
+  }
+  const objectOutput = output as { generated_text?: unknown };
+  if (typeof objectOutput?.generated_text === "string") {
+    return objectOutput.generated_text;
+  }
+  return null;
+}
+
+function sanitizeSubject(value: string, fallback: string) {
+  const trimmed = value.replace(/\s+/gu, " ").trim();
+  if (!trimmed) {
+    return fallback;
+  }
+  return trimmed.slice(0, 180);
+}
+
+function sanitizeBody(value: string, fallback: string) {
+  const trimmed = value.replace(/\r\n/gu, "\n").trim();
+  if (trimmed.length < 120) {
+    return fallback;
+  }
+  return trimmed.slice(0, 8000);
 }
 
 export function buildDeterministicFactSet(
@@ -245,65 +555,76 @@ export function buildTemplateDraft(
   const caseType = factSet.incident_type ?? "consumer_issue";
   const caseTypeLabel = formatCaseTypeLabel(caseType);
   const when = factSet.dates[0] ?? "the recorded date";
-  const summaryFacts = factSet.key_facts.length > 0 ? factSet.key_facts : fallbackKeyFacts(factSet.timeline);
-  const timelineFacts = factSet.timeline.slice(0, 4).map((item) => `${item.time_label || "Time not set"} - ${item.description}`);
+  const summaryFacts = normalizeFacts(factSet.key_facts.length > 0 ? factSet.key_facts : fallbackKeyFacts(factSet.timeline));
+  const timelineFacts = factSet.timeline
+    .slice(0, 4)
+    .map((item) => `${item.time_label || "Time not set"} - ${normalizeSentence(item.description)}`);
   const routeLabel = route.destination_name_snapshot;
   const amountLabel = factSet.amounts[0] ?? null;
   const placeLabel = factSet.places[0] ?? null;
   const phoneLabel = factSet.phones[0] ?? null;
   const requestedResolution = inferResolution(caseType, amountLabel);
 
-  const subjectTarget = factSet.businesses[0] ?? factSet.places[0] ?? "case file";
+  const subjectTarget = factSet.businesses[0] ?? factSet.places[0] ?? "case report";
+  const introLine = buildComplaintIntro(caseType, businessName, placeLabel, when);
+  const factParagraph = summaryFacts.join(" ");
+  const timelineParagraph =
+    timelineFacts.length > 0 ? `Timeline details from the capture: ${timelineFacts.join("; ")}.` : null;
+  const supportingEvidence = compact([
+    "Original audio capture",
+    "Transcript",
+    "Confirmed case details",
+    amountLabel ? "Amount reference" : null,
+    placeLabel ? "Location reference" : null,
+  ]);
 
   const bodyLines = [
-    `To: ${routeLabel}`,
+    `To ${routeLabel}:`,
     "",
-    "Complaint summary",
-    `I am filing a ${caseTypeLabel.toLowerCase()} complaint related to ${businessName}.`,
+    introLine,
     "",
-    "Case details",
+    `I am requesting review of the following complaint.`,
+    "",
+    `What happened`,
+    `${factParagraph}`,
+    timelineParagraph,
+    amountLabel ? `Amount involved: ${amountLabel}.` : null,
+    phoneLabel ? `Related phone number: ${phoneLabel}.` : null,
+    "",
+    "Requested outcome",
+    `${requestedResolution}`,
+    "",
+    "Supporting evidence included",
+    ...supportingEvidence.map((item) => `- ${item}`),
+    "",
+    "Please confirm receipt and provide next steps.",
+    "",
     `Case type: ${caseTypeLabel}`,
-    `Business: ${businessName}`,
-    `Date of incident: ${when}`,
-    placeLabel ? `Location: ${placeLabel}` : null,
-    phoneLabel ? `Business phone: ${phoneLabel}` : null,
-    amountLabel ? `Amount involved: ${amountLabel}` : null,
+    `Reporting source: ${route.source_label} (${route.trust_level})`,
     "",
-    "What happened",
-    ...summaryFacts.map((fact) => `- ${fact}`),
-    ...(timelineFacts.length > 0
-      ? [
-          "",
-          "Timeline from capture",
-          ...timelineFacts.map((item) => `- ${item}`),
-        ]
-      : []),
-    "",
-    "Requested resolution",
-    `- ${requestedResolution}`,
-    "",
-    "Why this reporting option fits",
-    route.reason,
-    "",
-    "Source and trust",
-    `Source: ${route.source_label}`,
-    `Trust level: ${route.trust_level}`,
-    "",
-    "Attached proof packet",
-    "- Original audio capture",
-    "- Transcript",
-    "- Confirmed facts",
-    amountLabel ? "- Amount and payment reference" : null,
-    placeLabel ? "- Location details" : null,
-    "",
-    "I confirm this report is accurate to the best of my knowledge.",
+    "Submitted from Dossier.",
   ].filter(Boolean);
 
   return {
     subject: `${caseTypeLabel}: ${subjectTarget}`,
     body: bodyLines.join("\n"),
-    attachment_labels: ["Original audio capture", "Transcript", "Confirmed facts"],
+    attachment_labels: supportingEvidence,
   };
+}
+
+function buildComplaintIntro(caseType: string, businessName: string, placeLabel: string | null, when: string) {
+  switch (caseType) {
+    case "emergency_safety":
+      return `I am filing a public safety report about an incident on ${when}${placeLabel ? ` in ${placeLabel}` : ""}.`;
+    case "civil_rights":
+      return `I am filing a civil rights complaint regarding conduct connected to ${businessName} on ${when}${placeLabel ? ` in ${placeLabel}` : ""}.`;
+    case "tenant_issue":
+      return `I am filing a housing complaint about events on ${when}${placeLabel ? ` in ${placeLabel}` : ""}.`;
+    case "workplace_wages":
+      return `I am filing a wage-related complaint about events on ${when}${placeLabel ? ` in ${placeLabel}` : ""}.`;
+    default:
+      return `I am filing a complaint regarding ${businessName} based on events on ${when}${placeLabel ? ` in ${placeLabel}` : ""}.`;
+  }
 }
 
 function formatCaseTypeLabel(value: string) {
@@ -317,26 +638,42 @@ function formatCaseTypeLabel(value: string) {
 function inferResolution(caseType: string, amountLabel: string | null) {
   switch (caseType) {
     case "emergency_safety":
-      return "This report concerns immediate public safety. Please route it to the correct authority and confirm next steps.";
+      return "Please review this public safety complaint and confirm the official intake or case reference.";
     case "consumer_billing":
       return amountLabel
         ? `Review the charge and provide a correction or refund for ${amountLabel}.`
         : "Review the charge and provide correction or refund where appropriate.";
     case "fraud_or_deception":
-      return "Investigate suspected fraud or theft activity and provide required next steps.";
+      return "Review suspected fraud or theft activity and provide the formal next steps for this complaint.";
     case "service_quality":
       return "Review this service complaint and provide a written response and corrective action.";
     case "retail_transaction":
-      return "Review the transaction records and provide a written outcome or correction.";
+      return "Review the transaction details and provide a written outcome or correction.";
     case "civil_rights":
       return "Review this report for potential rights violations and provide the proper filing path.";
     case "workplace_wages":
       return "Review wage records and correct unpaid or incorrect compensation.";
     case "tenant_issue":
-      return "Review the housing complaint and enforce applicable tenant protections.";
+      return "Review this housing complaint and provide the proper tenant-protection process.";
+    case "police_misconduct":
+      return "Review this officer-conduct complaint and provide the official intake path and reference details.";
     default:
       return "Review this complaint and provide a written response with next steps.";
   }
+}
+
+function normalizeFacts(facts: string[]) {
+  return facts.map((fact) => normalizeSentence(fact)).filter(Boolean);
+}
+
+function normalizeSentence(value: string) {
+  const trimmed = value.replace(/\s+/gu, " ").trim();
+  if (!trimmed) {
+    return "";
+  }
+  const noDoublePunct = trimmed.replace(/([.!?]){2,}$/u, "$1");
+  const ensuredPeriod = /[.!?]$/u.test(noDoublePunct) ? noDoublePunct : `${noDoublePunct}.`;
+  return ensuredPeriod.replace(/^\w/u, (char) => char.toUpperCase());
 }
 
 export function createWhisperTinyTranscriber(): LocalTranscriber {
@@ -346,9 +683,14 @@ export function createWhisperTinyTranscriber(): LocalTranscriber {
   return {
     async prepare(input = {}) {
       modelIdPromise ??= resolvePreferredWhisperModel();
-      const modelId = await modelIdPromise;
+      let modelId = await modelIdPromise;
       const alreadyLoaded = Boolean(pipelinePromise);
-      await loadWhisperPipeline(pipelinePromise, input.onProgress, modelId).then((pipeline) => {
+      const loaded = await loadWhisperPipelineWithFallback(pipelinePromise, input.onProgress, modelId);
+      if (loaded.modelId !== modelId) {
+        modelId = loaded.modelId;
+        modelIdPromise = Promise.resolve(loaded.modelId);
+      }
+      await Promise.resolve(loaded.pipeline).then((pipeline) => {
         pipelinePromise ??= pipeline.promise;
       });
 
@@ -372,7 +714,7 @@ export function createWhisperTinyTranscriber(): LocalTranscriber {
 
     async transcribe(input) {
       modelIdPromise ??= resolvePreferredWhisperModel();
-      const modelId = await modelIdPromise;
+      let modelId = await modelIdPromise;
       input.onProgress?.({
         stage: "load",
         label: "Loading built-in speech tools.",
@@ -383,7 +725,12 @@ export function createWhisperTinyTranscriber(): LocalTranscriber {
         model: modelId,
       });
 
-      const pipeline = await loadWhisperPipeline(pipelinePromise, input.onProgress, modelId);
+      const loaded = await loadWhisperPipelineWithFallback(pipelinePromise, input.onProgress, modelId);
+      if (loaded.modelId !== modelId) {
+        modelId = loaded.modelId;
+        modelIdPromise = Promise.resolve(loaded.modelId);
+      }
+      const pipeline = loaded.pipeline;
       pipelinePromise ??= pipeline.promise;
 
       const { pcm16k } = await decodeAudioForAsr(input.audioBytes);
@@ -421,7 +768,7 @@ export function createWhisperTinyTranscriber(): LocalTranscriber {
 }
 
 async function resolvePreferredWhisperModel() {
-  const preferredModels = ["Xenova/whisper-tiny.en"];
+  const preferredModels = ["Xenova/whisper-base.en", "Xenova/whisper-tiny.en"];
 
   for (const model of preferredModels) {
     const available = await isBundledModelAvailable(model);
@@ -434,10 +781,50 @@ async function resolvePreferredWhisperModel() {
     "local_ai_failed",
     "Built-in speech model files are missing on this device bundle.",
     {
-      required_model: "Xenova/whisper-tiny.en",
-      expected_path: "/models/Xenova/whisper-tiny.en/",
+      required_models: preferredModels,
+      expected_paths: preferredModels.map((model) => `/models/${model}/`),
     },
   );
+}
+
+async function loadWhisperPipelineWithFallback(
+  existing: Promise<(audio: Float32Array, options: Record<string, unknown>) => Promise<unknown>> | null,
+  onProgress: ((event: LocalAiProgressEvent) => void) | undefined,
+  preferredModelId: string,
+) {
+  try {
+    const pipeline = await loadWhisperPipeline(existing, onProgress, preferredModelId);
+    return {
+      pipeline,
+      modelId: preferredModelId,
+    };
+  } catch (error) {
+    if (preferredModelId !== "Xenova/whisper-base.en") {
+      throw error;
+    }
+
+    const fallbackModel = "Xenova/whisper-tiny.en";
+    const hasFallback = await isBundledModelAvailable(fallbackModel);
+    if (!hasFallback) {
+      throw error;
+    }
+
+    onProgress?.({
+      stage: "load",
+      label: "High-accuracy speech model is not supported here. Switching to compatible speech tools.",
+      progress: null,
+      loaded_bytes: null,
+      total_bytes: null,
+      file: null,
+      model: fallbackModel,
+    });
+
+    const pipeline = await loadWhisperPipeline(existing, onProgress, fallbackModel);
+    return {
+      pipeline,
+      modelId: fallbackModel,
+    };
+  }
 }
 
 async function isBundledModelAvailable(modelId: string) {
@@ -701,6 +1088,13 @@ function splitSentences(text: string) {
 
 function classifyIncident(text: string) {
   const normalized = text.toLowerCase();
+  if (
+    /\bpolice misconduct\b|\bcomplaint against (?:a |an )?police\b|\bcomplaint against (?:a |an )?officer\b|\bcomplaint against (?:the )?police\b|\bexcessive force\b|\bbrutality\b|\binternal affairs\b|\babuse of authority\b|\bcivilian review\b/iu.test(
+      normalized,
+    )
+  ) {
+    return "police_misconduct";
+  }
   if (/\bpolice report\b|\bbreak[- ]?in\b|\bbroken into\b|\bburglary\b|\bcar break[- ]?in\b|\brobbed\b|\brobbery\b|\bvandaliz/iu.test(normalized)) {
     return "emergency_safety";
   }
@@ -844,6 +1238,10 @@ function fallbackKeyFacts(timeline: FactTimelineItemRecord[]) {
 
 function unique(values: Array<string | null | undefined>) {
   return [...new Set(values.filter((value): value is string => Boolean(value)).map((value) => value.trim()))];
+}
+
+function compact(values: Array<string | null>) {
+  return values.filter((value): value is string => Boolean(value));
 }
 
 function metadata(input: {
