@@ -1,0 +1,25 @@
+{
+  "import_batch_id": "routing-registry-import-20260408T060831Z",
+  "generated_at": "2026-04-08T06:08:31.791687Z",
+  "inputs": [
+    {
+      "file": "/home/grey/codex-dossier/docs/routing-seed-pack/routing_registry_import_example.json",
+      "kind": "json",
+      "accepted_destinations": 1,
+      "rejected_destinations": 0
+    }
+  ],
+  "summary": {
+    "destination_count": 1,
+    "intake_count": 2,
+    "rule_count": 1,
+    "verification_record_count": 1,
+    "by_destination_type": {
+      "state_agency": 1
+    },
+    "warnings": 0,
+    "errors": 0
+  },
+  "warnings": [],
+  "errors": []
+}

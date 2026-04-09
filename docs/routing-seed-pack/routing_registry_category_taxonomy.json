@@ -1,0 +1,174 @@
+{
+  "version": "2026-04-07-draft-1",
+  "notes": "First-pass internal category taxonomy for routing rules. User-facing copy should stay plain.",
+  "categories": [
+    {
+      "id": "consumer_billing",
+      "label": "Consumer billing",
+      "description": "Billing errors, disputed charges, unexpected fees, or refund problems in a consumer transaction.",
+      "suggested_destination_types": ["business", "corporate", "state_agency", "federal_agency", "consumer_org"],
+      "default_route_categories": ["Business", "State", "Federal", "Other verified routes"]
+    },
+    {
+      "id": "retail_transaction",
+      "label": "Retail transaction",
+      "description": "Problems tied to a purchase, return, delivery, fulfillment, or point-of-sale dispute.",
+      "suggested_destination_types": ["business", "corporate", "state_agency", "consumer_org"],
+      "default_route_categories": ["Business", "State", "Other verified routes"]
+    },
+    {
+      "id": "service_quality",
+      "label": "Service quality",
+      "description": "Poor service, failure to perform, or a service outcome that does not match the agreement.",
+      "suggested_destination_types": ["business", "corporate", "state_agency", "consumer_org"],
+      "default_route_categories": ["Business", "State", "Other verified routes"]
+    },
+    {
+      "id": "fraud_or_deception",
+      "label": "Fraud or deception",
+      "description": "Misleading claims, scams, impersonation, false promises, or deceptive business conduct.",
+      "suggested_destination_types": ["business", "state_agency", "federal_agency", "law_enforcement"],
+      "default_route_categories": ["Business", "State", "Federal", "Other verified routes"]
+    },
+    {
+      "id": "price_gouging",
+      "label": "Price gouging",
+      "description": "Unfair emergency-related price increases or abusive emergency market behavior.",
+      "suggested_destination_types": ["business", "state_agency", "local_agency"],
+      "default_route_categories": ["Business", "State", "Local"]
+    },
+    {
+      "id": "privacy_or_data",
+      "label": "Privacy or data",
+      "description": "Unauthorized sharing, exposure, misuse, or poor handling of personal information.",
+      "suggested_destination_types": ["business", "state_agency", "federal_agency"],
+      "default_route_categories": ["Business", "State", "Federal"]
+    },
+    {
+      "id": "debt_collection",
+      "label": "Debt collection",
+      "description": "Collection calls, letters, threats, reporting errors, or unlawful collection conduct.",
+      "suggested_destination_types": ["business", "state_agency", "federal_agency"],
+      "default_route_categories": ["Business", "State", "Federal"]
+    },
+    {
+      "id": "credit_reporting",
+      "label": "Credit reporting",
+      "description": "Incorrect credit reporting, failure to correct records, or reporting tied to a dispute.",
+      "suggested_destination_types": ["business", "state_agency", "federal_agency"],
+      "default_route_categories": ["Business", "State", "Federal"]
+    },
+    {
+      "id": "loan_or_mortgage",
+      "label": "Loan or mortgage",
+      "description": "Mortgage servicing, lending, auto loan, student loan, or loan-related complaint.",
+      "suggested_destination_types": ["business", "state_agency", "federal_agency"],
+      "default_route_categories": ["Business", "State", "Federal"]
+    },
+    {
+      "id": "banking_issue",
+      "label": "Banking issue",
+      "description": "Problems involving bank accounts, transfers, cards, fees, or consumer banking access.",
+      "suggested_destination_types": ["business", "state_agency", "federal_agency"],
+      "default_route_categories": ["Business", "State", "Federal"]
+    },
+    {
+      "id": "workplace_wages",
+      "label": "Workplace wages",
+      "description": "Unpaid wages, overtime disputes, final pay, or related wage problems.",
+      "suggested_destination_types": ["state_agency", "federal_agency"],
+      "default_route_categories": ["State", "Federal"]
+    },
+    {
+      "id": "workplace_discrimination",
+      "label": "Workplace discrimination",
+      "description": "Discrimination, harassment, retaliation, or unequal treatment in employment.",
+      "suggested_destination_types": ["state_agency", "federal_agency"],
+      "default_route_categories": ["State", "Federal"]
+    },
+    {
+      "id": "workplace_safety",
+      "label": "Workplace safety",
+      "description": "Unsafe work conditions, hazards, and related worker safety complaints.",
+      "suggested_destination_types": ["federal_agency", "state_agency"],
+      "default_route_categories": ["State", "Federal"]
+    },
+    {
+      "id": "workplace_retaliation",
+      "label": "Workplace retaliation",
+      "description": "Retaliation for reporting hazards, violations, or protected activity at work.",
+      "suggested_destination_types": ["federal_agency", "state_agency"],
+      "default_route_categories": ["State", "Federal"]
+    },
+    {
+      "id": "housing_condition",
+      "label": "Housing condition",
+      "description": "Serious repair, sanitation, maintenance, or unsafe habitability issues.",
+      "suggested_destination_types": ["business", "local_agency", "state_agency"],
+      "default_route_categories": ["Business", "Local", "State"]
+    },
+    {
+      "id": "housing_discrimination",
+      "label": "Housing discrimination",
+      "description": "Discrimination in renting, buying, financing, advertising, or housing access.",
+      "suggested_destination_types": ["state_agency", "federal_agency"],
+      "default_route_categories": ["State", "Federal"]
+    },
+    {
+      "id": "tenant_issue",
+      "label": "Tenant issue",
+      "description": "Tenant-landlord complaints, lease disputes, access, deposits, or unfair housing conduct.",
+      "suggested_destination_types": ["business", "local_agency", "state_agency", "federal_agency"],
+      "default_route_categories": ["Business", "Local", "State", "Federal"]
+    },
+    {
+      "id": "civil_rights",
+      "label": "Civil rights",
+      "description": "Discrimination or rights violations in public life, services, education, housing, or work.",
+      "suggested_destination_types": ["state_agency", "federal_agency", "law_enforcement"],
+      "default_route_categories": ["State", "Federal", "Local"]
+    },
+    {
+      "id": "utility_issue",
+      "label": "Utility issue",
+      "description": "Billing, shutoff, service quality, or unfair conduct involving utilities.",
+      "suggested_destination_types": ["business", "state_agency", "local_agency"],
+      "default_route_categories": ["Business", "State", "Local"]
+    },
+    {
+      "id": "insurance_issue",
+      "label": "Insurance issue",
+      "description": "Coverage, denial, billing, claims handling, or policy administration problems.",
+      "suggested_destination_types": ["business", "state_agency"],
+      "default_route_categories": ["Business", "State"]
+    },
+    {
+      "id": "health_or_sanitation",
+      "label": "Health or sanitation",
+      "description": "Food safety, sanitation, public health exposure, or unsafe health conditions.",
+      "suggested_destination_types": ["business", "local_agency", "state_agency"],
+      "default_route_categories": ["Business", "Local", "State"]
+    },
+    {
+      "id": "licensing_or_professional_conduct",
+      "label": "Licensing or professional conduct",
+      "description": "Unlicensed work, professional misconduct, or complaints tied to regulated trades.",
+      "suggested_destination_types": ["business", "state_agency", "regulator"],
+      "default_route_categories": ["Business", "State", "Other verified routes"]
+    },
+    {
+      "id": "police_non_emergency",
+      "label": "Police non-emergency",
+      "description": "Non-emergency public safety reporting where local law enforcement is relevant.",
+      "suggested_destination_types": ["law_enforcement", "local_agency"],
+      "default_route_categories": ["Local", "State"]
+    },
+    {
+      "id": "police_misconduct",
+      "label": "Police misconduct",
+      "description": "Misconduct, abuse, discrimination, or civil rights violations by law enforcement.",
+      "suggested_destination_types": ["law_enforcement", "state_agency", "federal_agency"],
+      "default_route_categories": ["Local", "State", "Federal"]
+    }
+  ]
+}

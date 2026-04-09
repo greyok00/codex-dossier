@@ -1,0 +1,111 @@
+{
+  "import_batch_id": "batch2-state-consumer-review-2026-04-07",
+  "generated_at": "2026-04-07T21:55:00Z",
+  "notes": "Nested operator-authored import example for one destination. Public route data must remain source-backed.",
+  "destinations": [
+    {
+      "destination": {
+        "destination_name": "Arizona Attorney General Consumer Complaint",
+        "destination_type": "state_agency",
+        "jurisdiction_country": "US",
+        "jurisdiction_state": "AZ",
+        "jurisdiction_county": null,
+        "jurisdiction_city": null,
+        "categories_handled": [
+          "consumer_billing",
+          "retail_transaction",
+          "service_quality",
+          "fraud_or_deception",
+          "privacy_or_data",
+          "price_gouging"
+        ],
+        "source_url": "https://www.azag.gov/complaints/consumer",
+        "last_verified_date": "2026-04-07",
+        "trust_level": "official",
+        "status": "active"
+      },
+      "intakes": [
+        {
+          "intake_method": "web_form",
+          "complaint_url": "https://consumer-complaint.azag.gov/",
+          "email": null,
+          "phone": "+1-602-542-5763",
+          "mailing_address": {
+            "line1": "2005 N Central Ave",
+            "line2": null,
+            "city": "Phoenix",
+            "state": "AZ",
+            "postal_code": "85004",
+            "country": "US"
+          },
+          "notes_required_fields": [
+            "complainant_name",
+            "contact_information",
+            "business_name",
+            "incident_dates",
+            "summary"
+          ],
+          "notes_required_documents": [
+            "receipts",
+            "contracts",
+            "emails",
+            "texts",
+            "advertisements"
+          ]
+        },
+        {
+          "intake_method": "phone",
+          "complaint_url": null,
+          "email": null,
+          "phone": "+1-602-542-5763",
+          "mailing_address": null,
+          "notes_required_fields": [
+            "complainant_name",
+            "business_name",
+            "summary"
+          ],
+          "notes_required_documents": []
+        }
+      ],
+      "rules": [
+        {
+          "incident_categories": [
+            "consumer_billing",
+            "retail_transaction",
+            "service_quality",
+            "fraud_or_deception",
+            "privacy_or_data",
+            "price_gouging"
+          ],
+          "business_types": [
+            "general_business",
+            "retail",
+            "online_services",
+            "home_services"
+          ],
+          "jurisdiction_rules": {
+            "state_equals": [
+              "AZ"
+            ],
+            "country_equals": "US"
+          },
+          "priority_weight": 90,
+          "exclusions": [
+            "workplace_only",
+            "housing_discrimination_federal_priority",
+            "regulated_financial_product_federal_priority"
+          ],
+          "reason_template": "This route fits a consumer complaint about goods or services in Arizona."
+        }
+      ],
+      "verification_record": {
+        "source_url": "https://www.azag.gov/complaints/consumer",
+        "checked_at": "2026-04-07T21:55:00Z",
+        "result": "verified",
+        "change_summary": "Initial review import example based on the public Arizona Attorney General consumer complaint page.",
+        "checked_by": "operator_review",
+        "next_review_due": "2026-05-07T00:00:00Z"
+      }
+    }
+  ]
+}

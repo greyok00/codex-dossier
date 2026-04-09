@@ -1,0 +1,32 @@
+{
+  "import_batch_id": "routing-registry-import-20260408T060818Z",
+  "generated_at": "2026-04-08T06:08:18.812460Z",
+  "inputs": [
+    {
+      "file": "/home/grey/codex-dossier/docs/routing-seed-pack/routing_registry_batch1_federal_core_expanded_review.csv",
+      "kind": "csv",
+      "accepted_rows": 9,
+      "rejected_rows": 0
+    },
+    {
+      "file": "/home/grey/codex-dossier/docs/routing-seed-pack/routing_registry_batch2_state_consumer_50_states_dc_review.csv",
+      "kind": "csv",
+      "accepted_rows": 51,
+      "rejected_rows": 0
+    }
+  ],
+  "summary": {
+    "destination_count": 60,
+    "intake_count": 60,
+    "rule_count": 60,
+    "verification_record_count": 60,
+    "by_destination_type": {
+      "federal_agency": 9,
+      "state_agency": 51
+    },
+    "warnings": 0,
+    "errors": 0
+  },
+  "warnings": [],
+  "errors": []
+}

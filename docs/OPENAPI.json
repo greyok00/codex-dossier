@@ -1,0 +1,3041 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Dossier Public API",
+    "version": "1.0.0-draft",
+    "description": "Public API contract for Dossier. This file is a pre-build review artifact and does not include application code. Scope: public endpoints only. Internal admin endpoints such as /internal/registry/import and /internal/registry/verify are intentionally omitted. OpenAPI path parameters use {destinationId} as the standard translation of the product spec notation :destinationId."
+  },
+  "servers": [
+    {
+      "url": "https://api.dossier.example"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/v1/auth/google": {
+      "post": {
+        "summary": "Verify Google identity and create an app session",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthGoogleRequest"
+              },
+              "example": {
+                "firebase_id_token": "firebase-id-token",
+                "device": {
+                  "install_id": "4f6f39e0-c365-4c9e-9a19-18cd29d3d9a0",
+                  "platform": "ios",
+                  "app_version": "0.1.0",
+                  "user_agent": "Mozilla/5.0"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                },
+                "example": {
+                  "ok": true,
+                  "request_id": "req_01JQ9Y1S0G4N7QZ4R3PSF39B4E",
+                  "data": {
+                    "user": {
+                      "id": "1fd45572-6b0e-4271-b7f7-96d4f3d3d6d0",
+                      "google_sub": "google-sub",
+                      "email": "reviewer@example.com",
+                      "email_verified": true,
+                      "display_name": "Alex Grey",
+                      "photo_url": "https://example.com/photo.jpg",
+                      "created_at": "2026-04-07T20:00:00Z",
+                      "last_login_at": "2026-04-07T20:00:00Z"
+                    },
+                    "session": {
+                      "session_id": "ab8d6501-c50e-4eb3-b6ee-d7e7e363f9f2",
+                      "token_type": "Bearer",
+                      "session_token": "jwt-token",
+                      "issued_at": "2026-04-07T20:00:00Z",
+                      "expires_at": "2026-04-07T22:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "summary": "End the current app session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              },
+              "example": {
+                "all_sessions": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                },
+                "example": {
+                  "ok": true,
+                  "request_id": "req_01JQ9Y3FD2Y3PSYJXGM4A6J2YG",
+                  "data": {
+                    "logged_out": true,
+                    "all_sessions": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/auth/session": {
+      "get": {
+        "summary": "Get the current session and user",
+        "responses": {
+          "200": {
+            "description": "Current session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/registry/version": {
+      "get": {
+        "summary": "Get routing registry version metadata",
+        "responses": {
+          "200": {
+            "description": "Registry version metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryVersionResponse"
+                },
+                "example": {
+                  "ok": true,
+                  "request_id": "req_01JQ9Y5S10JH7KXZV8HY2EG0GA",
+                  "data": {
+                    "registry_version": "2026.04.07.1",
+                    "published_at": "2026-04-07T19:45:00Z",
+                    "destination_count": 4127,
+                    "verification_window_start": "2026-03-01",
+                    "verification_window_end": "2026-04-07"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/ai/transcribe": {
+      "post": {
+        "summary": "Create a transcript from captured audio",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscribeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transcript created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscribeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "413": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/ai/extract": {
+      "post": {
+        "summary": "Extract facts, people, places, business matches, and timeline details",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fact set created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/ai/draft": {
+      "post": {
+        "summary": "Create a route-aware draft report",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/venue/match": {
+      "post": {
+        "summary": "Match a likely business or venue from location and report context",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VenueMatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Venue matches returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueMatchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/routes/recommend": {
+      "post": {
+        "summary": "Return ranked, source-backed routes for a case",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutesRecommendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recommended routes returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutesRecommendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/routes/{destinationId}": {
+      "get": {
+        "summary": "Get a destination detail record",
+        "parameters": [
+          {
+            "name": "destinationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Destination detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/submission/email-preview": {
+      "post": {
+        "summary": "Build a destination-aware email preview from an approved draft",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email preview built",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailPreviewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/v1/submission/record-action": {
+      "post": {
+        "summary": "Record a send or handoff action",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Action recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "ErrorResponse": {
+        "description": "Error response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "ok": false,
+              "request_id": "req_01JQ9YZ0QMC1PR3Q7PSQMX9GSQ",
+              "error": {
+                "code": "route_data_unavailable",
+                "message": "Route data could not be loaded right now.",
+                "retryable": true,
+                "details": {
+                  "endpoint": "/v1/routes/recommend"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "SuccessBase": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "request_id"
+        ],
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "request_id",
+          "error"
+        ],
+        "properties": {
+          "ok": {
+            "const": false
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message",
+              "retryable",
+              "details"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      },
+      "DeviceContext": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "install_id",
+          "platform",
+          "app_version",
+          "user_agent"
+        ],
+        "properties": {
+          "install_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android",
+              "web"
+            ]
+          },
+          "app_version": {
+            "type": "string"
+          },
+          "user_agent": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "google_sub",
+          "email",
+          "email_verified",
+          "display_name",
+          "photo_url",
+          "created_at",
+          "last_login_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "google_sub": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "photo_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_login_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "session_id",
+          "token_type",
+          "session_token",
+          "issued_at",
+          "expires_at"
+        ],
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token_type": {
+            "const": "Bearer"
+          },
+          "session_token": {
+            "type": "string"
+          },
+          "issued_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AuthGoogleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "firebase_id_token",
+          "device"
+        ],
+        "properties": {
+          "firebase_id_token": {
+            "type": "string",
+            "description": "Firebase Auth ID token issued after Google sign-in on the client."
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceContext"
+          }
+        }
+      },
+      "AuthSessionData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "user",
+          "session"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          }
+        }
+      },
+      "AuthSessionResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AuthSessionData"
+              }
+            }
+          }
+        ]
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "all_sessions"
+        ],
+        "properties": {
+          "all_sessions": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LogoutResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "logged_out",
+                  "all_sessions"
+                ],
+                "properties": {
+                  "logged_out": {
+                    "const": true
+                  },
+                  "all_sessions": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RegistryVersion": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "registry_version",
+          "published_at",
+          "destination_count",
+          "verification_window_start",
+          "verification_window_end"
+        ],
+        "properties": {
+          "registry_version": {
+            "type": "string"
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "destination_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "verification_window_start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "verification_window_end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "RegistryVersionResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/RegistryVersion"
+              }
+            }
+          }
+        ]
+      },
+      "InlineAudioUpload": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "upload_mode",
+          "filename",
+          "mime_type",
+          "size_bytes",
+          "content_base64"
+        ],
+        "properties": {
+          "upload_mode": {
+            "const": "inline_base64"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "content_base64": {
+            "type": "string"
+          }
+        }
+      },
+      "ObjectStorageAudioUpload": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "upload_mode",
+          "filename",
+          "mime_type",
+          "size_bytes",
+          "object_key"
+        ],
+        "properties": {
+          "upload_mode": {
+            "const": "object_storage_reference"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "object_key": {
+            "type": "string"
+          }
+        }
+      },
+      "TranscriptSegment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "start_ms",
+          "end_ms",
+          "speaker_label",
+          "text",
+          "confidence"
+        ],
+        "properties": {
+          "start_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "speaker_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "TranscriptDocument": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "full_text",
+          "language",
+          "segment_count",
+          "segments"
+        ],
+        "properties": {
+          "full_text": {
+            "type": "string"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "segment_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranscriptSegment"
+            }
+          }
+        }
+      },
+      "ModelMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "model",
+          "purpose",
+          "requested_at",
+          "completed_at",
+          "latency_ms"
+        ],
+        "properties": {
+          "provider": {
+            "const": "openai"
+          },
+          "model": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "transcribe",
+              "extract",
+              "draft",
+              "route_reasoning"
+            ]
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "latency_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "input_audio_seconds": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "input_characters": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "input_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "output_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      },
+      "TranscribeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incident_id",
+          "source_evidence_id",
+          "source_evidence_sha256",
+          "upload"
+        ],
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_evidence_sha256": {
+            "type": "string"
+          },
+          "upload": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/InlineAudioUpload"
+              },
+              {
+                "$ref": "#/components/schemas/ObjectStorageAudioUpload"
+              }
+            ]
+          },
+          "language_hint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "include_timestamps": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "TranscribeResponseData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incident_id",
+          "source_evidence_id",
+          "transcript_evidence_id",
+          "transcript",
+          "model_metadata",
+          "warnings"
+        ],
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transcript_evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transcript": {
+            "$ref": "#/components/schemas/TranscriptDocument"
+          },
+          "model_metadata": {
+            "$ref": "#/components/schemas/ModelMetadata"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TranscribeResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/TranscribeResponseData"
+              }
+            }
+          }
+        ]
+      },
+      "FactSet": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fact_set_id",
+          "incident_type",
+          "people",
+          "places",
+          "businesses",
+          "phones",
+          "dates",
+          "amounts",
+          "timeline",
+          "key_facts",
+          "reviewed_by_user"
+        ],
+        "properties": {
+          "fact_set_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "incident_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "places": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "businesses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "phones": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "amounts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "time_label",
+                "description"
+              ],
+              "properties": {
+                "time_label": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "key_facts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reviewed_by_user": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ExtractContext": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "location_address",
+          "confirmed_place_id",
+          "confirmed_place_name",
+          "confirmed_place_phone"
+        ],
+        "properties": {
+          "location_address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confirmed_place_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confirmed_place_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confirmed_place_phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ExtractRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incident_id",
+          "transcript_evidence_id",
+          "transcript",
+          "context"
+        ],
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transcript_evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transcript": {
+            "$ref": "#/components/schemas/TranscriptDocument"
+          },
+          "context": {
+            "$ref": "#/components/schemas/ExtractContext"
+          }
+        }
+      },
+      "ExtractResponseData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incident_id",
+          "transcript_evidence_id",
+          "fact_set",
+          "model_metadata",
+          "warnings"
+        ],
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transcript_evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fact_set": {
+            "$ref": "#/components/schemas/FactSet"
+          },
+          "model_metadata": {
+            "$ref": "#/components/schemas/ModelMetadata"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ExtractResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ExtractResponseData"
+              }
+            }
+          }
+        ]
+      },
+      "MailingAddress": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "line1",
+          "line2",
+          "city",
+          "state",
+          "postal_code",
+          "country"
+        ],
+        "properties": {
+          "line1": {
+            "type": "string"
+          },
+          "line2": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "country": {
+            "const": "US"
+          }
+        }
+      },
+      "Destination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "destination_id",
+          "destination_name",
+          "destination_type",
+          "jurisdiction",
+          "categories_handled",
+          "intake_methods",
+          "complaint_url",
+          "email",
+          "phone",
+          "mailing_address",
+          "source_url",
+          "last_verified_date",
+          "trust_level",
+          "notes_required_fields",
+          "notes_required_documents"
+        ],
+        "properties": {
+          "destination_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "destination_name": {
+            "type": "string"
+          },
+          "destination_type": {
+            "type": "string",
+            "enum": [
+              "business",
+              "corporate",
+              "local_agency",
+              "state_agency",
+              "federal_agency",
+              "regulator",
+              "law_enforcement",
+              "consumer_org",
+              "other"
+            ]
+          },
+          "jurisdiction": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "country",
+              "state",
+              "county",
+              "city"
+            ],
+            "properties": {
+              "country": {
+                "const": "US"
+              },
+              "state": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "county": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "city": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "categories_handled": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "intake_methods": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "web_form",
+                "email",
+                "phone",
+                "mail",
+                "portal",
+                "in_person"
+              ]
+            }
+          },
+          "complaint_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mailing_address": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MailingAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "last_verified_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "trust_level": {
+            "type": "string",
+            "enum": [
+              "official",
+              "verified",
+              "directory",
+              "unconfirmed"
+            ]
+          },
+          "notes_required_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes_required_documents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RouteRecommendation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "destination_id",
+          "destination_name_snapshot",
+          "destination_type_snapshot",
+          "route_category",
+          "rank",
+          "reason",
+          "source_label",
+          "source_url",
+          "last_verified_date",
+          "trust_level",
+          "intake_methods_snapshot",
+          "required_documents_snapshot",
+          "available_actions",
+          "destination"
+        ],
+        "properties": {
+          "destination_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "destination_name_snapshot": {
+            "type": "string"
+          },
+          "destination_type_snapshot": {
+            "type": "string"
+          },
+          "route_category": {
+            "type": "string",
+            "enum": [
+              "Business",
+              "Local",
+              "State",
+              "Federal",
+              "Other verified routes"
+            ]
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source_label": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "last_verified_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "trust_level": {
+            "type": "string",
+            "enum": [
+              "official",
+              "verified",
+              "directory",
+              "unconfirmed"
+            ]
+          },
+          "intake_methods_snapshot": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "web_form",
+                "email",
+                "phone",
+                "mail",
+                "portal",
+                "in_person"
+              ]
+            }
+          },
+          "required_documents_snapshot": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "available_actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "open_form",
+                "call",
+                "email",
+                "share_packet",
+                "export_packet",
+                "save_for_later"
+              ]
+            }
+          },
+          "destination": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Destination"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "RouteGroup": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "route_category",
+          "routes"
+        ],
+        "properties": {
+          "route_category": {
+            "type": "string",
+            "enum": [
+              "Business",
+              "Local",
+              "State",
+              "Federal",
+              "Other verified routes"
+            ]
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteRecommendation"
+            }
+          }
+        }
+      },
+      "AttachmentReference": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "label",
+          "mime_type",
+          "sha256"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        }
+      },
+      "DraftPacket": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "draft_packet_id",
+          "incident_id",
+          "destination_id",
+          "subject",
+          "body",
+          "attachments",
+          "version",
+          "approved"
+        ],
+        "properties": {
+          "draft_packet_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "destination_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentReference"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "approved": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DraftRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incident_id",
+          "fact_set",
+          "selected_route"
+        ],
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fact_set": {
+            "$ref": "#/components/schemas/FactSet"
+          },
+          "selected_route": {
+            "$ref": "#/components/schemas/RouteRecommendation"
+          },
+          "transcript_excerpt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "desired_tone": {
+            "type": "string",
+            "default": "plain_serious"
+          }
+        }
+      },
+      "DraftResponseData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incident_id",
+          "selected_route",
+          "draft_packet",
+          "model_metadata",
+          "warnings"
+        ],
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "selected_route": {
+            "$ref": "#/components/schemas/RouteRecommendation"
+          },
+          "draft_packet": {
+            "$ref": "#/components/schemas/DraftPacket"
+          },
+          "model_metadata": {
+            "$ref": "#/components/schemas/ModelMetadata"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "DraftResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/DraftResponseData"
+              }
+            }
+          }
+        ]
+      },
+      "VenueMatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "place_id",
+          "business_name",
+          "address",
+          "phone",
+          "website",
+          "lat",
+          "lng",
+          "match_confidence",
+          "source_label",
+          "source_url",
+          "trust_level",
+          "captured_at"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "place_id": {
+            "type": "string"
+          },
+          "business_name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "match_confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "source_label": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "trust_level": {
+            "type": "string",
+            "enum": [
+              "official",
+              "verified",
+              "directory",
+              "unconfirmed"
+            ]
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VenueMatchRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incident_id",
+          "location"
+        ],
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "location": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lat",
+              "lng"
+            ],
+            "properties": {
+              "lat": {
+                "type": "number"
+              },
+              "lng": {
+                "type": "number"
+              },
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "transcript_excerpt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "business_hints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "VenueMatchResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "incident_id",
+                  "matches"
+                ],
+                "properties": {
+                  "incident_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "matches": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/VenueMatch"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RoutesRecommendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incident_id",
+          "fact_set",
+          "confirmed_place"
+        ],
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fact_set": {
+            "$ref": "#/components/schemas/FactSet"
+          },
+          "confirmed_place": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VenueMatch"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "location_context": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "city",
+              "address"
+            ],
+            "properties": {
+              "state": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "city": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "RoutesRecommendResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "incident_id",
+                  "registry_version",
+                  "generated_at",
+                  "model_metadata",
+                  "route_groups"
+                ],
+                "properties": {
+                  "incident_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "registry_version": {
+                    "type": "string"
+                  },
+                  "generated_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "model_metadata": {
+                    "$ref": "#/components/schemas/ModelMetadata"
+                  },
+                  "route_groups": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/RouteGroup"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RouteDetailResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "destination"
+                ],
+                "properties": {
+                  "destination": {
+                    "$ref": "#/components/schemas/Destination"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "EmailPreview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "to",
+          "cc",
+          "subject",
+          "body",
+          "attachments",
+          "destination_name_snapshot",
+          "destination_type_snapshot",
+          "source_url",
+          "last_verified_date",
+          "trust_level"
+        ],
+        "properties": {
+          "to": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "cc": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentReference"
+            }
+          },
+          "destination_name_snapshot": {
+            "type": "string"
+          },
+          "destination_type_snapshot": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "last_verified_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "trust_level": {
+            "type": "string",
+            "enum": [
+              "official",
+              "verified",
+              "directory",
+              "unconfirmed"
+            ]
+          }
+        }
+      },
+      "EmailPreviewRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incident_id",
+          "selected_route",
+          "draft_packet"
+        ],
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "selected_route": {
+            "$ref": "#/components/schemas/RouteRecommendation"
+          },
+          "draft_packet": {
+            "$ref": "#/components/schemas/DraftPacket"
+          }
+        }
+      },
+      "EmailPreviewResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "incident_id",
+                  "destination_id",
+                  "email_preview"
+                ],
+                "properties": {
+                  "incident_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "destination_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "email_preview": {
+                    "$ref": "#/components/schemas/EmailPreview"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "SubmissionProof": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "submission_proof_id",
+          "incident_id",
+          "destination_id",
+          "method",
+          "status",
+          "confirmation_number",
+          "external_reference_url",
+          "notes",
+          "attachments",
+          "created_at"
+        ],
+        "properties": {
+          "submission_proof_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "incident_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "destination_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "web_form",
+              "email",
+              "phone",
+              "mail",
+              "share"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "attempted",
+              "sent",
+              "submitted",
+              "shared",
+              "called",
+              "saved"
+            ]
+          },
+          "confirmation_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external_reference_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentReference"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustodyEventDescriptor": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "actor",
+          "details_json"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "evidence_created",
+              "transcript_created",
+              "facts_confirmed",
+              "route_selected",
+              "draft_approved",
+              "send_action_recorded",
+              "share_completed",
+              "export_created",
+              "proof_saved"
+            ]
+          },
+          "actor": {
+            "type": "string",
+            "enum": [
+              "user",
+              "system",
+              "ai"
+            ]
+          },
+          "details_json": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceCreatedDetails"
+              },
+              {
+                "$ref": "#/components/schemas/TranscriptCreatedDetails"
+              },
+              {
+                "$ref": "#/components/schemas/FactsConfirmedDetails"
+              },
+              {
+                "$ref": "#/components/schemas/RouteSelectedDetails"
+              },
+              {
+                "$ref": "#/components/schemas/DraftApprovedDetails"
+              },
+              {
+                "$ref": "#/components/schemas/SendActionRecordedDetails"
+              },
+              {
+                "$ref": "#/components/schemas/ShareCompletedDetails"
+              },
+              {
+                "$ref": "#/components/schemas/ExportCreatedDetails"
+              },
+              {
+                "$ref": "#/components/schemas/ProofSavedDetails"
+              }
+            ]
+          }
+        }
+      },
+      "EvidenceCreatedDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "evidence_id",
+          "evidence_type",
+          "original",
+          "integrity_status",
+          "sha256",
+          "captured_at",
+          "size_bytes",
+          "mime_type",
+          "device_info",
+          "location"
+        ],
+        "properties": {
+          "event": {
+            "const": "evidence_created"
+          },
+          "evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evidence_type": {
+            "type": "string",
+            "enum": [
+              "audio",
+              "upload",
+              "transcript",
+              "draft",
+              "export",
+              "proof"
+            ]
+          },
+          "original": {
+            "type": "boolean"
+          },
+          "integrity_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "verified",
+              "mismatch"
+            ]
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "device_info": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "location": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lat",
+              "lng",
+              "address"
+            ],
+            "properties": {
+              "lat": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "lng": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "TranscriptCreatedDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "evidence_id",
+          "transcript_evidence_id",
+          "source_evidence_id",
+          "segment_count",
+          "model",
+          "language",
+          "confidence_summary"
+        ],
+        "properties": {
+          "event": {
+            "const": "transcript_created"
+          },
+          "evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transcript_evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "segment_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "model": {
+            "type": "string"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence_summary": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "average"
+            ],
+            "properties": {
+              "average": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      },
+      "FactsConfirmedDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "fact_set_id",
+          "incident_type",
+          "confirmed_fields",
+          "edited_fields",
+          "reviewed_by_user"
+        ],
+        "properties": {
+          "event": {
+            "const": "facts_confirmed"
+          },
+          "fact_set_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "incident_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confirmed_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "edited_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reviewed_by_user": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RouteSelectedDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "route_snapshot_id",
+          "destination_id",
+          "destination_name_snapshot",
+          "destination_type_snapshot",
+          "route_category",
+          "rank",
+          "reason",
+          "source_url",
+          "last_verified_date",
+          "trust_level",
+          "intake_methods_snapshot",
+          "required_documents_snapshot"
+        ],
+        "properties": {
+          "event": {
+            "const": "route_selected"
+          },
+          "route_snapshot_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "destination_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "destination_name_snapshot": {
+            "type": "string"
+          },
+          "destination_type_snapshot": {
+            "type": "string"
+          },
+          "route_category": {
+            "type": "string",
+            "enum": [
+              "Business",
+              "Local",
+              "State",
+              "Federal",
+              "Other verified routes"
+            ]
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "last_verified_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "trust_level": {
+            "type": "string",
+            "enum": [
+              "official",
+              "verified",
+              "directory",
+              "unconfirmed"
+            ]
+          },
+          "intake_methods_snapshot": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "web_form",
+                "email",
+                "phone",
+                "mail",
+                "portal",
+                "in_person"
+              ]
+            }
+          },
+          "required_documents_snapshot": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "DraftApprovedDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "draft_packet_id",
+          "destination_id",
+          "version",
+          "subject",
+          "attachment_count"
+        ],
+        "properties": {
+          "event": {
+            "const": "draft_approved"
+          },
+          "draft_packet_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "destination_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "subject": {
+            "type": "string"
+          },
+          "attachment_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "SendActionRecordedDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "submission_proof_id",
+          "destination_id",
+          "method",
+          "status",
+          "target_label",
+          "external_reference_url"
+        ],
+        "properties": {
+          "event": {
+            "const": "send_action_recorded"
+          },
+          "submission_proof_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "destination_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "web_form",
+              "email",
+              "phone",
+              "mail",
+              "share"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "attempted",
+              "sent",
+              "submitted",
+              "shared",
+              "called",
+              "saved"
+            ]
+          },
+          "target_label": {
+            "type": "string"
+          },
+          "external_reference_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          }
+        }
+      },
+      "ShareCompletedDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "shared_item_types",
+          "share_method",
+          "destination_hint",
+          "evidence_ids"
+        ],
+        "properties": {
+          "event": {
+            "const": "share_completed"
+          },
+          "shared_item_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "share_method": {
+            "type": "string"
+          },
+          "destination_hint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "ExportCreatedDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "export_evidence_id",
+          "export_format",
+          "included_items",
+          "sha256"
+        ],
+        "properties": {
+          "event": {
+            "const": "export_created"
+          },
+          "export_evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "export_format": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "zip"
+            ]
+          },
+          "included_items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sha256": {
+            "type": "string"
+          }
+        }
+      },
+      "ProofSavedDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "submission_proof_id",
+          "destination_id",
+          "method",
+          "status",
+          "confirmation_number",
+          "external_reference_url",
+          "attachment_count"
+        ],
+        "properties": {
+          "event": {
+            "const": "proof_saved"
+          },
+          "submission_proof_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "destination_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "web_form",
+              "email",
+              "phone",
+              "mail",
+              "share"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "attempted",
+              "sent",
+              "submitted",
+              "shared",
+              "called",
+              "saved"
+            ]
+          },
+          "confirmation_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external_reference_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "attachment_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "RecordActionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "submission_proof",
+          "selected_route",
+          "custody_event"
+        ],
+        "properties": {
+          "submission_proof": {
+            "$ref": "#/components/schemas/SubmissionProof"
+          },
+          "selected_route": {
+            "$ref": "#/components/schemas/RouteRecommendation"
+          },
+          "custody_event": {
+            "$ref": "#/components/schemas/CustodyEventDescriptor"
+          }
+        }
+      },
+      "RecordActionResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessBase"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "submission_proof",
+                  "destination_source",
+                  "recorded_at",
+                  "server_reference_id"
+                ],
+                "properties": {
+                  "submission_proof": {
+                    "$ref": "#/components/schemas/SubmissionProof"
+                  },
+                  "destination_source": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "destination_id",
+                      "destination_name_snapshot",
+                      "destination_type_snapshot",
+                      "source_url",
+                      "last_verified_date",
+                      "trust_level"
+                    ],
+                    "properties": {
+                      "destination_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
+                      },
+                      "destination_name_snapshot": {
+                        "type": "string"
+                      },
+                      "destination_type_snapshot": {
+                        "type": "string"
+                      },
+                      "source_url": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uri"
+                      },
+                      "last_verified_date": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date"
+                      },
+                      "trust_level": {
+                        "type": "string",
+                        "enum": [
+                          "official",
+                          "verified",
+                          "directory",
+                          "unconfirmed"
+                        ]
+                      }
+                    }
+                  },
+                  "recorded_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "server_reference_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

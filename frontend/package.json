@@ -1,0 +1,39 @@
+{
+  "name": "dossier-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "verify:links": "node ./scripts/verify-links.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.0.1",
+    "@tanstack/react-query": "^5.90.3",
+    "dexie": "^4.2.1",
+    "jszip": "^3.10.1",
+    "onnxruntime-web": "^1.25.0-dev.20260327-722743c0e2",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.4"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.0.4",
+    "fake-indexeddb": "^6.2.3",
+    "jsdom": "^27.0.0",
+    "typescript": "^6.0.2",
+    "vite": "^7.1.9",
+    "vite-plugin-pwa": "^1.1.0",
+    "vitest": "^3.2.4"
+  }
+}
