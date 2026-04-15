@@ -4,7 +4,7 @@ This queue translates the `0.2` checklist into execution order.
 
 Current baseline:
 
-- release line: `0.1.4`
+- release line: `0.1.5`
 - frontend typecheck: passing
 - frontend tests: passing
 - frontend build: passing
@@ -136,4 +136,4 @@ Dossier is ready for `0.2` when:
 
 - section **B** is completed with written evidence
 - section **C / Priority 1** is complete
-- at least one semver release after `0.1.4` incorporates real-device QA findings
+- at least one semver release after `0.1.5` incorporates real-device QA findings

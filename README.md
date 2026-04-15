@@ -1,6 +1,6 @@
 # codex-dossier
 
-![Dossier cases preview](docs/media/dossier-readme-overview-phone-390-v2.png)
+![Dossier cases preview](docs/media/dossier-readme-overview-phone-390-v3.png)
 
 Dossier is a local-first incident capture and reporting app.
 
@@ -19,9 +19,9 @@ Product line:
 ## Current Release Assets
 
 - Current versioned release:
-  - `https://github.com/greyok00/codex-dossier/releases/tag/v0.1.4`
+  - `https://github.com/greyok00/codex-dossier/releases/tag/v0.1.5`
 - Android asset attached to the release:
-  - `dossier-v0.1.4-android-debug.apk`
+  - `dossier-v0.1.5-android-debug.apk`
 - iOS/macOS-side artifact available from this machine:
   - an `xtool` shell source bundle for `ios-xtool-shell/`
   - this is not a compiled `.ipa` or `.app`
@@ -31,10 +31,11 @@ Product line:
 1. Open `Start a case` and save the incident recording.
 2. Review the transcript and confirm the case details.
 3. Open `Destinations` and choose the right reporting route.
-4. Review and approve the official brief.
+4. Open `Dossier`, review the official brief, and approve it for handoff.
 5. Send the brief, save the filing receipt, and export the dossier.
+6. On Android packaged builds, bundled speech and writing tools load locally the first time you open transcript and draft steps.
 
-![Dossier brief preview](docs/media/dossier-readme-brief-phone-390-v2.png)
+![Dossier brief preview](docs/media/dossier-readme-brief-phone-390-v3.png)
 
 ## Current Stack
 
@@ -143,7 +144,7 @@ npm run db:test:down
 
 ## Roadmap To 1.0
 
-Current line: `0.1.4`
+Current line: `0.1.5`
 
 - `0.1.x` Stabilization
   - validate the full case flow on real Android devices
@@ -198,6 +199,7 @@ Detailed milestone plan:
 ## Current Constraints
 
 - Large local AI assets are still the biggest frontend payload.
+- Bundling the local writing model into the Android wrapper currently produces a very large debug APK.
 - This repository now includes Capacitor Android and iOS project shells under `frontend/android` and `frontend/ios`.
 - Those folders are native wrapper projects, not proof that final `.apk` or `.ipa` binaries were built on this machine.
 - Android packaging is working locally and a debug APK has been uploaded to GitHub Releases.

@@ -1,6 +1,6 @@
 {
   "name": "codex-dossier",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Dossier backend runtime and routing registry tools",
   "type": "module",
   "main": "dist/server.js",

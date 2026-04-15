@@ -131,4 +131,39 @@ describe("local AI native fallbacks", () => {
     expect(prepared.model).toBe("Xenova/whisper-tiny.en");
     expect(pipeline).not.toHaveBeenCalled();
   });
+
+  it("keeps bundled native writing deferred until the first draft", async () => {
+    const pipeline = vi.fn();
+    vi.doMock("@huggingface/transformers", () => ({
+      env: {
+        useBrowserCache: true,
+        allowLocalModels: true,
+        allowRemoteModels: false,
+        localModelPath: "/models/",
+      },
+      pipeline,
+    }));
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        const url = String(input);
+        if (
+          url.includes("/models/Xenova/whisper-tiny.en/config.json") ||
+          url.includes("/models/Qwen/Qwen2.5-0.5B-Instruct/config.json")
+        ) {
+          return Promise.resolve(new Response("", { status: 200 }));
+        }
+        return Promise.resolve(new Response("", { status: 404 }));
+      }),
+    );
+
+    const { createLocalApiClient } = await import("../lib/local-ai");
+    const client = createLocalApiClient();
+    const prepared = await client.prepareLocalAi();
+
+    expect(prepared.model).toBe("Xenova/whisper-tiny.en");
+    expect(prepared.warnings).toEqual([]);
+    expect(pipeline).not.toHaveBeenCalled();
+  });
 });

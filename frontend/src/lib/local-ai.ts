@@ -266,6 +266,7 @@ function createQwenDraftEnhancer(): LocalDraftEnhancer {
   let generatorPromise: Promise<(prompt: string, options: Record<string, unknown>) => Promise<unknown>> | null = null;
   const modelId = "Qwen/Qwen2.5-0.5B-Instruct";
   const missingBundledModelWarning = "Enhanced local writing is not bundled in this app build. Using standard local draft mode.";
+  const nativeBundleReadyLabel = "Built-in writing tools are bundled with this app and will finish loading when you open a draft.";
 
   return {
     async prepare(input = {}) {
@@ -287,6 +288,22 @@ function createQwenDraftEnhancer(): LocalDraftEnhancer {
           file: null,
           model: modelId,
         });
+      }
+
+      if (isCapacitorNativePlatform()) {
+        input.onProgress?.({
+          stage: "ready",
+          label: nativeBundleReadyLabel,
+          progress: 100,
+          loaded_bytes: null,
+          total_bytes: null,
+          file: null,
+          model: modelId,
+        });
+        return {
+          model: modelId,
+          warnings: [],
+        };
       }
 
       await loadDraftGenerator(generatorPromise, modelId, input.onProgress).then((loaded) => {
