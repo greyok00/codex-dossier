@@ -16,6 +16,16 @@ Product line:
 - Recommends reporting destinations with trust/source labels
 - Drafts the report, tracks send actions, saves proof, and exports a case packet
 
+## Current Release Assets
+
+- Android prerelease:
+  - `https://github.com/greyok00/codex-dossier/releases/tag/v0.1.0-android-debug`
+- Android asset:
+  - `app-debug.apk`
+- iOS/macOS-side artifact available from this machine:
+  - an `xtool` shell source bundle for `ios-xtool-shell/`
+  - this is not a compiled `.ipa` or `.app`
+
 ## Quick Walkthrough
 
 1. Open `Record` and save the incident recording.
@@ -45,6 +55,7 @@ More detail:
 - [docs/FRONTEND_UI_REBUILD_FEATURE_LIST.md](docs/FRONTEND_UI_REBUILD_FEATURE_LIST.md)
 - [docs/CAPACITOR_MOBILE_SHELL.md](docs/CAPACITOR_MOBILE_SHELL.md)
 - [docs/ANDROID_LOCAL_APK_BUILD.md](docs/ANDROID_LOCAL_APK_BUILD.md)
+- [docs/XTOOL_IOS_SHELL.md](docs/XTOOL_IOS_SHELL.md)
 
 ## Run It
 
@@ -68,6 +79,15 @@ Android local APK path:
 ```bash
 cd frontend
 npm run android:build:debug
+```
+
+iOS xtool shell path:
+
+```bash
+cd frontend
+npm run build:ios:shell
+cd ..
+./scripts/xtool-status.sh
 ```
 
 Default dev URLs:
@@ -124,4 +144,6 @@ npm run db:test:down
 - Large local AI assets are still the biggest frontend payload.
 - This repository now includes Capacitor Android and iOS project shells under `frontend/android` and `frontend/ios`.
 - Those folders are native wrapper projects, not proof that final `.apk` or `.ipa` binaries were built on this machine.
+- Android packaging is working locally and a debug APK has been uploaded to GitHub Releases.
+- The `xtool` iOS shell is scaffolded and bundled, but final iOS packaging still requires Apple SDK input (`Xcode.xip` or `Xcode.app`) and xtool authentication.
 - The web app is the active development and validation shell.
