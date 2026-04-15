@@ -97,19 +97,19 @@ function createServices(db: DossierDatabase, overrides: Partial<AppServices> = {
 }
 
 async function enterApp() {
-  let nextHeading = await screen.findByRole("heading", { name: /^(get dossier ready|record what happened|case home|choose where to report)$/i });
+  let nextHeading = await screen.findByRole("heading", { name: /^(get dossier ready|start a case|cases|choose where to report)$/i });
   if (/^get dossier ready$/i.test(nextHeading.textContent ?? "")) {
     const prepareButton = screen.queryByRole("button", { name: /^(retry setup|downloading models)$/i });
     if (prepareButton) {
       await userEvent.click(prepareButton);
     }
-    nextHeading = await screen.findByRole("heading", { name: /^(record what happened|case home|choose where to report)$/i });
+    nextHeading = await screen.findByRole("heading", { name: /^(start a case|cases|choose where to report)$/i });
   }
-  if (!/^record what happened$/i.test(nextHeading.textContent ?? "")) {
+  if (!/^start a case$/i.test(nextHeading.textContent ?? "")) {
     await screen.findByRole("link", { name: /^record$/i });
     await userEvent.click(screen.getByRole("link", { name: /^record$/i }));
   }
-  await screen.findByRole("heading", { name: /^record what happened$/i });
+  await screen.findByRole("heading", { name: /^start a case$/i });
 }
 
 async function createCapture() {
@@ -236,16 +236,17 @@ describe("frontend local-first scaffold", () => {
     const db = new DossierDatabase(`frontend-quick-guide-${crypto.randomUUID()}`);
 
     renderApp(createServices(db));
-    await enterApp();
-    await screen.findByText(/record the incident once, then check the details and choose where to send the report\./i);
+    await screen.findByRole("heading", { name: /^cases$/i });
+    await screen.findByText(/start a case once to create a dossier with the original audio and its verified hash\./i);
     await userEvent.click(screen.getByRole("button", { name: /hide guide/i }));
-    await waitFor(() => expect(screen.queryByText(/record the incident once, then check the details/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/start a case once to create a dossier/i)).not.toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("link", { name: /^settings$/i }));
     await screen.findByRole("heading", { name: /^settings$/i });
-    expect(screen.queryByText(/^quick guide$/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/show guided walkthrough on every app start/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/manage privacy, walkthrough hints, and device access\./i)).toBeInTheDocument();
+    expect(screen.getByText(/^quickstart guide$/i)).toBeInTheDocument();
+    expect(screen.getByText(/the guide is currently hidden across the app\./i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /show guide on all pages/i })).toBeInTheDocument();
+    expect(screen.getByText(/manage privacy, the quickstart guide, and device access\./i)).toBeInTheDocument();
 
     await db.delete();
   });
@@ -297,11 +298,12 @@ describe("frontend local-first scaffold", () => {
     expect((await screen.findAllByRole("heading", { name: /arizona consumer complaint/i })).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("heading", { name: /better business bureau complaint/i })).length).toBeGreaterThan(0);
 
-    const businessRouteCard = screen.getByText(/desert market public contact/i).closest("section");
+    const businessRouteHeading = (await screen.findAllByRole("heading", { name: /desert market public contact/i })).at(-1);
+    const businessRouteCard = businessRouteHeading?.closest("section");
     if (!businessRouteCard) {
       throw new Error("Business route card not found");
     }
-    expect(within(businessRouteCard).getByRole("button", { name: /use this option/i })).toBeInTheDocument();
+    expect(within(businessRouteCard).getByRole("button", { name: /^write report$/i })).toBeInTheDocument();
 
     const routeCards = await db.route_recommendations.toArray();
     const routeGroups = routeCards
@@ -316,7 +318,7 @@ describe("frontend local-first scaffold", () => {
     if (!arizonaRouteCard) {
       throw new Error("Arizona route card not found");
     }
-    await clickAndSettle(within(arizonaRouteCard).getByRole("button", { name: /use this option/i }));
+    await clickAndSettle(within(arizonaRouteCard).getByRole("button", { name: /make current/i }));
 
     const updatedRoutes = (await db.route_recommendations.toArray()).sort((left, right) =>
       left.route_group.localeCompare(right.route_group),

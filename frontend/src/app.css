@@ -1,7 +1,9 @@
 .app-shell {
   position: relative;
   min-height: 100vh;
-  padding: 1.25rem 1rem 6.5rem;
+  width: min(100%, var(--phone-shell-width));
+  margin: 0 auto;
+  padding: 0.9rem 0.75rem 5.85rem;
 }
 
 .app-shell::before {
@@ -18,7 +20,7 @@
 .app-shell__content,
 .screen,
 .shell {
-  width: min(100%, 76rem);
+  width: min(100%, var(--phone-frame-width));
   margin: 0 auto;
 }
 
@@ -26,11 +28,11 @@
 .shell {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .screen {
-  padding-bottom: 1rem;
+  padding-bottom: 0.75rem;
 }
 
 .screen--capture {
@@ -41,7 +43,7 @@
 .capture-header {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.55rem;
 }
 
 .content-header {
@@ -51,31 +53,34 @@
 .screen-title,
 .shell-title {
   margin: 0;
-  font-size: clamp(2rem, 3vw, 3.25rem);
-  line-height: 1;
-  letter-spacing: -0.04em;
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 7vw, 2.75rem);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+  text-wrap: balance;
 }
 
 .screen-body,
 .shell-body,
 .shell-detail {
   margin: 0;
-  max-width: 48rem;
-  color: rgba(255, 255, 255, 0.64);
-  line-height: 1.55;
+  max-width: 32rem;
+  color: rgba(255, 255, 255, 0.66);
+  line-height: 1.48;
+  font-size: 0.97rem;
 }
 
 .shell {
   min-height: 100vh;
   justify-content: center;
-  padding: 2rem 1.35rem;
+  padding: 1.5rem 0.9rem;
 }
 
 .shell-card {
-  width: min(100%, 28rem);
+  width: min(100%, var(--phone-frame-width));
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem;
 }
 
 .shell-actions {
@@ -87,8 +92,8 @@
 .brand-lockup {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
 }
 
 .brand-mark {
@@ -97,9 +102,9 @@
 }
 
 .brand-lockup__wordmark {
-  font-size: 0.78rem;
-  letter-spacing: 0.28em;
-  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  color: rgba(255, 255, 255, 0.52);
 }
 
 .settings-card,
@@ -108,11 +113,11 @@
 .fact-summary-card {
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 1.5rem;
+  border-radius: 1.35rem;
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(24px);
-  padding: 1.25rem;
+  padding: 1rem;
 }
 
 .settings-card h2,
@@ -120,7 +125,28 @@
 .quick-guide-card h2,
 .fact-summary-card h2 {
   margin: 0 0 0.6rem;
-  font-size: 1rem;
+  font-size: 0.96rem;
+  letter-spacing: -0.01em;
+}
+
+.case-home-hero h2,
+.destination-hero h2,
+.document-hero h2,
+.dossier-hero h2,
+.report-document__section h3,
+.receipt-card h2,
+.summary-stat-card h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.quick-guide-card--global {
+  width: min(100%, var(--phone-frame-width));
+  margin: 0 auto 0.75rem;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.05)),
+    rgba(255, 255, 255, 0.06);
 }
 
 .settings-card p,
@@ -156,12 +182,13 @@
 .status-chip {
   display: inline-flex;
   align-items: center;
-  padding: 0.38rem 0.7rem;
+  padding: 0.32rem 0.62rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
 }
 
 .status-chip--selected {
@@ -253,28 +280,30 @@
 .capture-stage {
   display: grid;
   place-items: center;
-  gap: 1rem;
-  min-height: 62vh;
-  padding: 1rem;
+  gap: 0.9rem;
+  min-height: 58vh;
+  padding: 0.75rem 0.25rem;
 }
 
 .capture-timer {
-  font-size: clamp(2.2rem, 10vw, 4.2rem);
-  letter-spacing: -0.05em;
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 11vw, 3.7rem);
+  letter-spacing: -0.04em;
   margin: 0;
 }
 
 .capture-note {
-  max-width: 28rem;
+  max-width: 22rem;
   text-align: center;
   color: rgba(255, 255, 255, 0.56);
+  font-size: 0.92rem;
 }
 
 .capture-orb {
   position: relative;
   display: grid;
   place-items: center;
-  width: min(74vw, 20rem);
+  width: min(72vw, 17.5rem);
   aspect-ratio: 1;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -302,9 +331,9 @@
 
 .capture-orb__label {
   position: absolute;
-  bottom: 1.8rem;
-  font-size: 0.82rem;
-  letter-spacing: 0.16em;
+  bottom: 1.45rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.62);
 }
@@ -315,13 +344,13 @@
 
 .detail-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(10.75rem, 1fr));
+  gap: 0.6rem;
   margin: 0;
 }
 
 .detail-list div {
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 0.85rem;
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -329,7 +358,7 @@
 
 .detail-list dt {
   margin-bottom: 0.35rem;
-  font-size: 0.76rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: rgba(255, 255, 255, 0.42);
@@ -389,7 +418,7 @@
 .field > span,
 .field-checkbox span {
   color: rgba(255, 255, 255, 0.78);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
 .field input,
@@ -397,12 +426,12 @@
 .field textarea,
 .field-textarea {
   width: 100%;
-  min-height: 2.8rem;
+  min-height: 2.65rem;
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.08);
   color: white;
-  padding: 0.85rem 1rem;
+  padding: 0.78rem 0.9rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
@@ -434,9 +463,9 @@
 .action-card {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  border-radius: 1.2rem;
-  padding: 1.05rem 1.1rem;
+  gap: 0.5rem;
+  border-radius: 1.1rem;
+  padding: 0.95rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 34%),
@@ -463,15 +492,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 0.9rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.8rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.08);
 }
 
 .action-card__title {
-  font-size: 0.98rem;
+  font-size: 0.94rem;
 }
 
 .secondary-button {
@@ -479,10 +508,10 @@
   justify-content: center;
   align-items: center;
   gap: 0.5rem;
-  min-height: 2.8rem;
+  min-height: 2.65rem;
   max-width: 100%;
-  padding: 0.8rem 1rem;
-  border-radius: 1rem;
+  padding: 0.72rem 0.9rem;
+  border-radius: 0.95rem;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.88);
@@ -503,7 +532,7 @@
 }
 
 .case-list--luxury {
-  gap: 1.15rem;
+  gap: 0.95rem;
 }
 
 .route-card-list {
@@ -560,9 +589,9 @@
   position: relative;
   overflow: hidden;
   display: grid;
-  gap: 1rem;
-  padding: 1.25rem;
-  border-radius: 1.7rem;
+  gap: 0.85rem;
+  padding: 1.05rem;
+  border-radius: 1.4rem;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 28%),
@@ -601,7 +630,7 @@
 .document-hero__meta article {
   display: grid;
   gap: 0.35rem;
-  padding: 0.95rem 1rem;
+  padding: 0.8rem 0.85rem;
   border-radius: 1.1rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(14, 16, 20, 0.36);
@@ -658,7 +687,7 @@
 .report-preview-card {
   position: relative;
   overflow: hidden;
-  border-radius: 1.6rem;
+  border-radius: 1.35rem;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04)),
@@ -676,7 +705,7 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.8rem;
-  padding: 1rem 1.1rem 0;
+  padding: 0.85rem 0.95rem 0;
 }
 
 .report-preview-card__badge {
@@ -694,13 +723,13 @@
 }
 
 .report-document {
-  margin: 1rem;
-  border-radius: 1.4rem;
+  margin: 0.85rem;
+  border-radius: 1.2rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
     linear-gradient(180deg, rgba(25, 28, 34, 0.94), rgba(20, 22, 28, 0.97)),
     rgba(12, 14, 18, 0.9);
-  padding: 1.25rem;
+  padding: 1rem;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 22px 54px rgba(0, 0, 0, 0.4);
@@ -759,7 +788,8 @@
 }
 
 .report-document__header h2 {
-  font-size: 1.35rem;
+  font-family: var(--font-display);
+  font-size: 1.28rem;
   line-height: 1.15;
 }
 
@@ -837,7 +867,7 @@
 .receipt-card {
   position: relative;
   overflow: hidden;
-  border-radius: 1.5rem;
+  border-radius: 1.3rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 32%),
@@ -849,7 +879,7 @@
 .summary-stat-card {
   display: grid;
   gap: 0.9rem;
-  padding: 1.2rem;
+  padding: 1rem;
 }
 
 .summary-stat-card--wide {
@@ -879,7 +909,8 @@
 .summary-stat-card h2,
 .receipt-card h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-family: var(--font-display);
+  font-size: 1.08rem;
 }
 
 .summary-stat-card p,
@@ -932,7 +963,7 @@
 .receipt-card {
   display: grid;
   gap: 1rem;
-  padding: 1.2rem;
+  padding: 1rem;
 }
 
 .receipt-card--ledger {
@@ -1037,19 +1068,19 @@
   display: grid;
   gap: 0.9rem;
   margin: 0 auto 1rem;
-  padding: 1rem 1.1rem;
-  width: min(100%, 76rem);
+  padding: 0.85rem 0.95rem;
+  width: min(100%, var(--phone-frame-width));
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 1.4rem;
+  border-radius: 1.2rem;
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(24px);
 }
 
 .runtime-panel--compact {
-  width: min(100%, 46rem);
-  padding: 0.85rem 1rem;
-  gap: 0.55rem;
+  width: min(100%, var(--phone-frame-width));
+  padding: 0.75rem 0.85rem;
+  gap: 0.45rem;
 }
 
 .runtime-panel h2,
@@ -1079,14 +1110,14 @@
 .bottom-nav {
   position: fixed;
   left: 50%;
-  bottom: 1rem;
+  bottom: 0.75rem;
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
-  width: min(calc(100% - 1.5rem), 38rem);
-  padding: 0.55rem;
-  border-radius: 1.5rem;
+  gap: 0.38rem;
+  width: min(calc(100% - 1rem), var(--phone-frame-width));
+  padding: 0.42rem;
+  border-radius: 1.2rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(17, 18, 22, 0.88);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
@@ -1098,12 +1129,12 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 0.15rem;
-  min-height: 2.9rem;
-  padding: 0.35rem 0.5rem;
-  border-radius: 1rem;
+  gap: 0.12rem;
+  min-height: 2.72rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.9rem;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   overflow: hidden;
 }
 
@@ -1150,7 +1181,7 @@ summary {
 
 @media (min-width: 768px) {
   .app-shell {
-    padding-inline: 1.5rem;
+    padding-inline: 0.75rem;
   }
 
   .runtime-panel__meta {

@@ -7,10 +7,10 @@ import {
   loadBootstrapState,
   setBiometricCredentialId,
   setBiometricPreference,
-  setCaptureBriefSeen,
   setDeviceLockHash,
   setFullAppWalkthroughEnabled,
   setLocalAiPrepared,
+  setQuickGuideSeen,
   setRequireUnlockOnOpen,
 } from "@/lib/db";
 import { createDefaultAppServices, type AppServices } from "@/lib/runtime";
@@ -136,25 +136,16 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
     setGlobalError(null);
   }
 
-  async function handleCaptureBriefSeen() {
-    await setCaptureBriefSeen(services.db, true);
+  async function handleQuickGuideSeen(quickGuideSeen: boolean) {
+    await setQuickGuideSeen(services.db, quickGuideSeen);
     setBootstrap((current) => ({
       ...current,
-      captureBriefSeen: true,
+      quickGuideSeen,
     }));
     setGlobalError(null);
   }
 
-  async function handleResetCaptureBrief() {
-    await setCaptureBriefSeen(services.db, false);
-    setBootstrap((current) => ({
-      ...current,
-      captureBriefSeen: false,
-    }));
-    setGlobalError(null);
-  }
-
-  async function handleFullAppWalkthroughEnabled(fullAppWalkthroughEnabled: boolean) {
+  async function handleQuickGuideEnabled(fullAppWalkthroughEnabled: boolean) {
     await setFullAppWalkthroughEnabled(services.db, fullAppWalkthroughEnabled);
     setBootstrap((current) => ({
       ...current,
@@ -268,16 +259,17 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
       <AuthenticatedShell
         biometricAvailable={bootstrap.biometricAvailable}
         biometricEnabled={bootstrap.biometricEnabled}
-        captureBriefSeen={bootstrap.captureBriefSeen}
         db={runtimeServices.db}
         demoCaseId={demoCaseId}
         fullAppWalkthroughEnabled={bootstrap.fullAppWalkthroughEnabled}
         lastOpenPath={bootstrap.lastOpenPath}
         lockConfigured={Boolean(bootstrap.lockHash)}
-        onCaptureBriefSeen={handleCaptureBriefSeen}
         onLockNow={handleLockNow}
+        onQuickGuideEnabledChange={handleQuickGuideEnabled}
+        onQuickGuideSeenChange={handleQuickGuideSeen}
         onRequireUnlockOnOpenChange={handleRequireUnlockOnOpenChange}
         onSaveAccessSettings={handleSecureDevice}
+        quickGuideSeen={bootstrap.quickGuideSeen}
         requireUnlockOnOpen={bootstrap.requireUnlockOnOpen}
         services={runtimeServices}
       />

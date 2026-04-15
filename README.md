@@ -1,12 +1,12 @@
 # codex-dossier
 
-![Dossier app preview](docs/media/dossier-readme-preview-phone-390.png)
+![Dossier cases preview](docs/media/dossier-readme-overview-phone-390-v2.png)
 
 Dossier is a local-first incident capture and reporting app.
 
 Product line:
 
-`Capture once. Build the case. Send it with proof.`
+`Document the case. Prepare the brief. Preserve the filing trail.`
 
 ## What It Does
 
@@ -28,11 +28,13 @@ Product line:
 
 ## Quick Walkthrough
 
-1. Open `Record` and save the incident recording.
+1. Open `Start a case` and save the incident recording.
 2. Review the transcript and confirm the case details.
-3. Open `Choose where to report` and pick a destination.
-4. Review the generated report draft.
-5. Send the brief, save the filing receipt, and export the case packet.
+3. Open `Destinations` and choose the right reporting route.
+4. Review and approve the official brief.
+5. Send the brief, save the filing receipt, and export the dossier.
+
+![Dossier brief preview](docs/media/dossier-readme-brief-phone-390-v2.png)
 
 ## Current Stack
 
@@ -104,6 +106,12 @@ npm --prefix frontend run check
 npm --prefix frontend run test -- --run
 npm --prefix frontend run build
 ```
+
+Current verification status:
+
+- Frontend typecheck: pass
+- Frontend tests: pass
+- Frontend production build: pass
 
 Backend:
 

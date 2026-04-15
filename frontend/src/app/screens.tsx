@@ -113,7 +113,6 @@ import {
   PrimaryButton,
   ProgressPanel,
   ScreenMessage,
-  WalkthroughHint,
 } from "./ui";
 
 const APP_SUMMARY = "Dossier turns a recording into a documented case you can review, report, and export.";
@@ -363,15 +362,9 @@ export function PrepareLocalAiScreen({
 }
 
 export function CaptureScreen({
-  captureBriefSeen,
-  onCaptureBriefSeen,
   services,
-  walkthroughEnabled,
 }: {
-  captureBriefSeen: boolean;
-  onCaptureBriefSeen: () => Promise<void>;
   services: AppServices;
-  walkthroughEnabled: boolean;
 }) {
   const navigate = useNavigate();
   const [recording, setRecording] = useState(false);
@@ -389,12 +382,7 @@ export function CaptureScreen({
     address: null,
   });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [captureBriefVisible, setCaptureBriefVisible] = useState(!captureBriefSeen);
   const activeCaptureRef = useRef<ActiveCapture | null>(null);
-
-  useEffect(() => {
-    setCaptureBriefVisible(!captureBriefSeen);
-  }, [captureBriefSeen]);
 
   useEffect(() => {
     let active = true;
@@ -455,11 +443,6 @@ export function CaptureScreen({
 
   async function startCapture() {
     setErrorMessage(null);
-    if (!captureBriefSeen) {
-      await onCaptureBriefSeen().catch(() => undefined);
-      setCaptureBriefVisible(false);
-    }
-
     try {
       const stream = await services.getUserMedia({ audio: true });
       const recorder = services.createMediaRecorder(stream);
@@ -566,8 +549,8 @@ export function CaptureScreen({
     <main className="screen screen--capture">
       <header className="capture-header">
         <div>
-          <h1 className="screen-title">Record what happened</h1>
-          <p className="screen-body">{APP_SUMMARY}</p>
+          <h1 className="screen-title">Start a case</h1>
+          <p className="screen-body">Create a new dossier from a single verified recording.</p>
         </div>
         <div className="capture-status-group">
           <span className="status-chip">{status}</span>
@@ -576,7 +559,6 @@ export function CaptureScreen({
       </header>
 
       <section className="capture-stage">
-        {walkthroughEnabled ? <WalkthroughHint step={1} title="Start here" body='Press "Start recording" to begin. Press "Stop recording" when done.' /> : null}
         <p className="capture-timer">{formatDuration(elapsedMs)}</p>
         <button
           aria-label={recording ? "Stop recording" : "Start recording"}
@@ -591,7 +573,6 @@ export function CaptureScreen({
           <span className="capture-orb__label">{recording ? "Stop recording" : "Start recording"}</span>
         </button>
         <PrimaryButton
-          className={walkthroughEnabled ? "walkthrough-target" : undefined}
           icon={recording ? Square : Mic}
           onClick={() => {
             void handleToggleCapture();
@@ -600,26 +581,6 @@ export function CaptureScreen({
           {recording ? "Stop recording" : "Start recording"}
         </PrimaryButton>
         <p className="capture-note">The original recording stays on this device with a verified hash and activity log.</p>
-        {captureBriefVisible ? (
-          <section className="quick-guide-card" aria-live="polite">
-            <h2>How Dossier works</h2>
-            <p>Record the incident once, then check the details and choose where to send the report.</p>
-            <p>Each recording becomes a saved case.</p>
-            <p>Dossier keeps the original audio, its hash, and the case history together.</p>
-            <button
-              className="secondary-button"
-              onClick={() => {
-                setCaptureBriefVisible(false);
-                if (!captureBriefSeen) {
-                  void onCaptureBriefSeen();
-                }
-              }}
-              type="button"
-            >
-              Hide guide
-            </button>
-          </section>
-        ) : null}
       </section>
 
       {errorMessage ? <InlineError message={errorMessage} /> : null}
@@ -741,7 +702,6 @@ export function CaptureSavedScreen({
         </section>
       ) : (
         <section className="settings-card">
-          {walkthroughEnabled ? <WalkthroughHint step={2} title="Create transcript" body='Press "Create transcript" to convert this recording into text.' /> : null}
           <h2>Next step</h2>
           <p>Create the transcript before checking details or choosing where to report.</p>
           <ProgressPanel
@@ -880,7 +840,6 @@ export function TranscriptScreen({
       </header>
 
       <section className="settings-card">
-        {walkthroughEnabled ? <WalkthroughHint step={3} title="Review transcript" body='Check the transcript text, then press "Check details".' /> : null}
         <h2>Full text</h2>
         <p className="transcript-fulltext">{transcript.full_text}</p>
       </section>
@@ -1141,9 +1100,6 @@ export function FactsScreen({
         <h1 className="screen-title">Check case details</h1>
         <p className="screen-body">Review what Dossier pulled from the transcript, fix anything wrong, then save.</p>
       </header>
-
-      {walkthroughEnabled ? <WalkthroughHint step={4} title="Confirm details" body='Review and edit the details, then press "Save details".' /> : null}
-
       <section className="settings-card">
         <div className="section-heading">
           <h2>Review status</h2>
@@ -1238,11 +1194,9 @@ export function FactsScreen({
 export function CasesScreen({
   db,
   demoCaseId,
-  walkthroughEnabled,
 }: {
   db: DossierDatabase;
   demoCaseId: string | null;
-  walkthroughEnabled: boolean;
 }) {
   const queryClient = useQueryClient();
   const [cases, setCases] = useState<IncidentRecord[]>([]);
@@ -1326,10 +1280,9 @@ export function CasesScreen({
   return (
     <main className="screen">
       <header className="content-header">
-        <h1 className="screen-title">Case home</h1>
-        <p className="screen-body">Resume the active dossier, move it forward, or open anything already stored on this device.</p>
+        <h1 className="screen-title">Cases</h1>
+        <p className="screen-body">Open a saved dossier, start a new case, or move the current one forward.</p>
       </header>
-      {walkthroughEnabled ? <WalkthroughHint step={1} title="Start with the sample case" body='Open the demo case to see the full flow. When you finish, come back here and press "Delete case" to practice cleanup.' /> : null}
       {cases.length === 0 ? (
         <EmptyState title="No cases yet" detail="Start a recording to create your first case." />
       ) : (
@@ -1362,7 +1315,7 @@ export function CasesScreen({
                 </article>
               </div>
               <div className="case-home-hero__actions">
-                <LinkButton className={walkthroughEnabled && demoCaseId === activeCase.id ? "walkthrough-target" : undefined} icon={FolderOpen} to={activeNextHref}>
+                <LinkButton icon={FolderOpen} to={activeNextHref}>
                   {activeNextLabel}
                 </LinkButton>
                 <LinkButton icon={MapPinned} to={`/cases/${activeCase.id}/routes`}>Open destinations</LinkButton>
@@ -1391,12 +1344,12 @@ export function CasesScreen({
                     </div>
                   </div>
                   <div className="button-row">
-                    <LinkButton className={walkthroughEnabled && demoCaseId === record.id ? "walkthrough-target" : undefined} icon={FolderOpen} to={`/cases/${record.id}`}>
+                    <LinkButton icon={FolderOpen} to={`/cases/${record.id}`}>
                       Open dossier
                     </LinkButton>
                     <LinkButton icon={MapPinned} to={`/cases/${record.id}/routes`}>Destinations</LinkButton>
                     <button
-                      className={walkthroughEnabled && demoCaseId === record.id ? "secondary-button danger-button walkthrough-target" : "secondary-button danger-button"}
+                      className="secondary-button danger-button"
                       disabled={deleteMutation.isPending}
                       onClick={() => {
                         const confirmed = window.confirm("Delete this case and all saved items on this device?");
@@ -1451,7 +1404,6 @@ export function RoutesIndexScreen({
         <h1 className="screen-title">Destinations</h1>
         <p className="screen-body">Review saved filing destinations for each case on this device.</p>
       </header>
-      {walkthroughEnabled ? <WalkthroughHint step={2} title="Open saved destinations" body="Use this tab to review the saved filing destinations for each case." /> : null}
 
       {cases.length === 0 ? (
         <EmptyState title="No destinations yet" detail="Check the case details first, then open destinations." />
@@ -1461,7 +1413,7 @@ export function RoutesIndexScreen({
             <li className="case-card" key={record.id}>
               <h2>{record.title}</h2>
               <p>{formatCaseTypeLabel(record.category) || "No case type set"}</p>
-              <LinkButton className={walkthroughEnabled && demoCaseId === record.id ? "walkthrough-target" : undefined} icon={MapPinned} to={`/cases/${record.id}/routes`}>
+              <LinkButton icon={MapPinned} to={`/cases/${record.id}/routes`}>
                 Open destinations
               </LinkButton>
             </li>
@@ -1475,11 +1427,9 @@ export function RoutesIndexScreen({
 export function CaseRoutesScreen({
   db,
   services,
-  walkthroughEnabled,
 }: {
   db: DossierDatabase;
   services: AppServices;
-  walkthroughEnabled: boolean;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -1620,7 +1570,7 @@ export function CaseRoutesScreen({
       <ScreenMessage
         title="Choose where to report"
         body="There are no saved reporting options for this case yet."
-        action={<PrimaryButton className={walkthroughEnabled ? "walkthrough-target" : undefined} disabled={recommendMutation.isPending} icon={MapPinned} onClick={() => { void recommendMutation.mutate(); }}>{recommendMutation.isPending ? "Finding options" : "Find reporting options"}</PrimaryButton>}
+        action={<PrimaryButton disabled={recommendMutation.isPending} icon={MapPinned} onClick={() => { void recommendMutation.mutate(); }}>{recommendMutation.isPending ? "Finding options" : "Find reporting options"}</PrimaryButton>}
         footer={recommendMutation.error ? <InlineError message={resolveRouteRecommendationError(recommendMutation.error)} /> : null}
       />
     );
@@ -1638,8 +1588,10 @@ export function CaseRoutesScreen({
         <h1 className="screen-title">Choose where to report</h1>
         <p className="screen-body">Pick a single filing path for this dossier. That route becomes the official destination for the report, proof, and export packet.</p>
       </header>
-
-      {walkthroughEnabled ? <WalkthroughHint step={5} title="Choose where to report" body='Open one option card, then use "Write report" on that same card.' /> : null}
+      <section className="settings-card settings-card--subtle">
+        <p>Use <strong>Write report</strong> to make any destination current and open the brief immediately.</p>
+        <p>Use <strong>Make current</strong> only when you want to switch the active destination without leaving this screen.</p>
+      </section>
 
       {primaryRoute ? (
         <section className="destination-hero">
@@ -1671,24 +1623,24 @@ export function CaseRoutesScreen({
           </div>
           <div className="destination-hero__actions">
             <PrimaryButton
-              disabled={selectMutation.isPending && selectMutation.variables?.routeRecommendationId === primaryRoute.id}
-              icon={primaryRoute.selected ? CheckCircle2 : MapPinned}
-              onClick={() => {
-                void selectRouteForCase(primaryRoute.id);
-              }}
-            >
-              {primaryRoute.selected ? "Using this route" : "Use this route"}
-            </PrimaryButton>
-            <button
-              className={walkthroughEnabled ? "secondary-button walkthrough-target" : "secondary-button"}
               disabled={selectMutation.isPending}
+              icon={NotebookPen}
               onClick={() => {
                 void beginReportForRoute(primaryRoute.id);
               }}
+            >
+              {primaryRoute.selected ? "Open brief" : "Write report"}
+            </PrimaryButton>
+            <button
+              className="secondary-button"
+              disabled={primaryRoute.selected || selectMutation.isPending}
+              onClick={() => {
+                void selectRouteForCase(primaryRoute.id);
+              }}
               type="button"
             >
-              <NotebookPen aria-hidden="true" />
-              Write report
+              <MapPinned aria-hidden="true" />
+              {primaryRoute.selected ? "Current destination" : "Make current"}
             </button>
             <button
               className="secondary-button"
@@ -1729,24 +1681,24 @@ export function CaseRoutesScreen({
             </div>
             <div className="button-row">
               <PrimaryButton
-                disabled={selectMutation.isPending && selectMutation.variables?.routeRecommendationId === recommendation.id}
-                icon={recommendation.selected ? CheckCircle2 : MapPinned}
-                onClick={() => {
-                  void selectRouteForCase(recommendation.id);
-                }}
-              >
-                {recommendation.selected ? "Using this option" : "Use this option"}
-              </PrimaryButton>
-              <button
-                className={walkthroughEnabled ? "secondary-button walkthrough-target" : "secondary-button"}
                 disabled={selectMutation.isPending}
+                icon={NotebookPen}
                 onClick={() => {
                   void beginReportForRoute(recommendation.id);
                 }}
+              >
+                {recommendation.selected ? "Open brief" : "Write report"}
+              </PrimaryButton>
+              <button
+                className="secondary-button"
+                disabled={recommendation.selected || selectMutation.isPending}
+                onClick={() => {
+                  void selectRouteForCase(recommendation.id);
+                }}
                 type="button"
               >
-                <NotebookPen aria-hidden="true" />
-                Write report
+                <MapPinned aria-hidden="true" />
+                {recommendation.selected ? "Current destination" : "Make current"}
               </button>
               <button
                 className="secondary-button"
@@ -1856,11 +1808,9 @@ export function CaseRoutesScreen({
 
 export function DraftReportScreen({
   db,
-  walkthroughEnabled,
   services,
 }: {
   db: DossierDatabase;
-  walkthroughEnabled: boolean;
   services: AppServices;
 }) {
   const queryClient = useQueryClient();
@@ -1885,6 +1835,20 @@ export function DraftReportScreen({
   const autoDraftRequestedRef = useRef(false);
 
   const selectedRoute = routeSummaryQuery.data?.recommendations.find((route) => route.selected) ?? null;
+
+  function buildDraftClipboardText(input: DraftFormState, route: RouteRecommendationRecord) {
+    return [
+      `Subject: ${input.subject.trim()}`,
+      "",
+      input.body.trim(),
+      "",
+      `Destination: ${route.destination_name_snapshot}`,
+      `Source: ${route.source_label}`,
+      route.complaint_url ? `Official form: ${route.complaint_url}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
 
   useEffect(() => {
     if (!draftQuery.data?.draft_packet) {
@@ -1980,7 +1944,10 @@ export function DraftReportScreen({
 
       return updated;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      if (formState && selectedRoute) {
+        await copyTextToClipboard(buildDraftClipboardText(formState, selectedRoute));
+      }
       void navigate(`/cases/${incidentId}/send`);
     },
   });
@@ -2025,8 +1992,6 @@ export function DraftReportScreen({
         <h1 className="screen-title">Write report</h1>
         <p className="screen-body">Shape the official brief for this dossier. Once approved, this becomes the report you send, share, archive, and prove.</p>
       </header>
-
-      {walkthroughEnabled ? <WalkthroughHint step={6} title="Review report draft" body='Edit the report if needed, then press "Approve brief".' /> : null}
 
       <section className="document-hero">
         <div className="document-hero__header">
@@ -2199,7 +2164,7 @@ export function DraftReportScreen({
       </section>
 
       <div className="button-row">
-        <PrimaryButton className={walkthroughEnabled ? "walkthrough-target" : undefined} disabled={approveMutation.isPending} icon={ClipboardCheck} onClick={() => { void approveMutation.mutate(); }}>
+        <PrimaryButton disabled={approveMutation.isPending} icon={ClipboardCheck} onClick={() => { void approveMutation.mutate(); }}>
           {approveMutation.isPending ? "Approving brief" : "Approve brief"}
         </PrimaryButton>
         <LinkButton icon={ArrowLeft} to={`/cases/${incidentId}/routes`}>Back to destinations</LinkButton>
@@ -2212,11 +2177,9 @@ export function DraftReportScreen({
 export function SendHandoffScreen({
   db,
   services,
-  walkthroughEnabled,
 }: {
   db: DossierDatabase;
   services: AppServices;
-  walkthroughEnabled: boolean;
 }) {
   const { incidentId = "" } = useParams();
   const caseSummaryQuery = useQuery({
@@ -2251,8 +2214,6 @@ export function SendHandoffScreen({
         <p className="screen-body">Open the official form, email, call, share, or export the report packet.</p>
       </header>
 
-      {walkthroughEnabled ? <WalkthroughHint step={7} title="Send or share" body="Choose an action card to open a site, email, call, share, or export." /> : null}
-
       <section className="settings-card">
         <h2>Before you send</h2>
         <ul className="inline-list">
@@ -2281,7 +2242,7 @@ export function SendHandoffScreen({
         <InlineNote message="Official sites open outside Dossier. This case stays saved on this device so you can return and save proof after you finish." />
       </section>
 
-      <SendActionPanel approvedDraft={{ subject: approvedDraft.subject, body: approvedDraft.body }} db={db} incidentId={incidentId} selectedRoute={selectedRoute} services={services} walkthroughEnabled={walkthroughEnabled} />
+      <SendActionPanel approvedDraft={{ subject: approvedDraft.subject, body: approvedDraft.body }} db={db} incidentId={incidentId} selectedRoute={selectedRoute} services={services} />
 
       <div className="button-row">
         <LinkButton icon={Shield} to={`/cases/${incidentId}/proof`}>Save confirmation</LinkButton>
@@ -2298,14 +2259,12 @@ export function SendActionPanel({
   incidentId,
   selectedRoute,
   services,
-  walkthroughEnabled = false,
 }: {
   approvedDraft: { subject: string; body: string } | null;
   db: DossierDatabase;
   incidentId: string;
   selectedRoute: RouteRecommendationRecord;
   services: AppServices;
-  walkthroughEnabled?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [actionNote, setActionNote] = useState<string | null>(null);
@@ -2408,7 +2367,7 @@ export function SendActionPanel({
       {!approvedDraft ? <InlineNote message="Approve the report draft to unlock email and share actions." /> : null}
       <section className="action-grid">
         <button
-          className={walkthroughEnabled ? "action-card walkthrough-target" : "action-card"}
+          className="action-card"
           disabled={!selectedRoute.complaint_url}
           onClick={() => {
             const complaintUrl = selectedRoute.complaint_url;
@@ -2898,9 +2857,6 @@ export function ExportCaseFileScreen({
         <h1 className="screen-title">Download case packet</h1>
         <p className="screen-body">Download a packet with the evidence, transcript, reporting options, report draft, and activity history.</p>
       </header>
-
-      {walkthroughEnabled ? <WalkthroughHint step={8} title="Download packet" body='Press "Download ZIP" for the full portable case, or "Download PDF" for the report packet.' /> : null}
-
       <section className="action-grid">
         <button className={walkthroughEnabled ? "action-card walkthrough-target" : "action-card"} onClick={() => { void exportPacket("pdf"); }} type="button">
           <span className="action-card__icon"><FileDown aria-hidden="true" /></span>
@@ -3002,27 +2958,6 @@ export function CaseFileScreen({
         <h1 className="screen-title">Dossier</h1>
         <p className="screen-body">Everything important about this case lives here: evidence, route, brief, filing record, and chain of activity.</p>
       </header>
-
-      {walkthroughEnabled && isDemoCase ? (
-        <section className="settings-card settings-card--walkthrough settings-card--highlight">
-          <h2>Demo flow</h2>
-          <ol className="walkthrough-list">
-            <li>
-              <span className="walkthrough-list__number">3</span>
-              <span>Review transcript and facts in this sample case.</span>
-            </li>
-            <li>
-              <span className="walkthrough-list__number">4</span>
-              <span>Open report options, draft, send, and export to see the full process.</span>
-            </li>
-            <li>
-              <span className="walkthrough-list__number">5</span>
-              <span>Return to Cases and delete this demo case when finished.</span>
-            </li>
-          </ol>
-        </section>
-      ) : null}
-
       <section className="dossier-hero">
         <div className="dossier-hero__header">
           <div>
@@ -3239,24 +3174,60 @@ export function SettingsScreen({
   biometricEnabled,
   lockConfigured,
   onLockNow,
+  onQuickGuideEnabledChange,
+  onQuickGuideSeenChange,
   onRequireUnlockOnOpenChange,
+  quickGuideEnabled,
+  quickGuideSeen,
   requireUnlockOnOpen,
 }: {
   biometricEnabled: boolean;
   lockConfigured: boolean;
   onLockNow: () => Promise<void>;
+  onQuickGuideEnabledChange: (enabled: boolean) => Promise<void>;
+  onQuickGuideSeenChange: (quickGuideSeen: boolean) => Promise<void>;
   onRequireUnlockOnOpenChange: (requireUnlockOnOpen: boolean) => Promise<void>;
+  quickGuideEnabled: boolean;
+  quickGuideSeen: boolean;
   requireUnlockOnOpen: boolean;
 }) {
   return (
     <main className="screen">
       <header className="content-header">
         <h1 className="screen-title">Settings</h1>
-        <p className="screen-body">Manage privacy, walkthrough hints, and device access.</p>
+        <p className="screen-body">Manage privacy, the quickstart guide, and device access.</p>
       </header>
       <section className="settings-card">
         <h2>Device</h2>
         <p>This MVP keeps captures and case files private to this device.</p>
+      </section>
+      <section className="settings-card">
+        <h2>Quickstart guide</h2>
+        <p>{quickGuideSeen ? "The guide is currently hidden across the app." : "The guide is currently visible across the app."}</p>
+        <div className="button-row">
+          <PrimaryButton
+            icon={NotebookPen}
+            onClick={() => {
+              void onQuickGuideEnabledChange(true);
+              void onQuickGuideSeenChange(false);
+            }}
+          >
+            Show guide on all pages
+          </PrimaryButton>
+          {!quickGuideSeen ? (
+            <button
+              className="secondary-button"
+              onClick={() => {
+                void onQuickGuideSeenChange(true);
+              }}
+              type="button"
+            >
+              <Shield aria-hidden="true" />
+              Hide guide on all pages
+            </button>
+          ) : null}
+        </div>
+        {!quickGuideEnabled ? <InlineNote message="Guide visibility is controlled locally on this device." /> : null}
       </section>
       <section className="settings-card">
         <h2>Roadmap and FAQ</h2>

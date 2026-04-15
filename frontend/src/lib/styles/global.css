@@ -6,6 +6,10 @@
 
 :root {
   color-scheme: dark;
+  --phone-frame-width: 390px;
+  --phone-shell-width: 422px;
+  --font-ui: "Manrope", "Geist Variable", system-ui, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
 }
 
 * {
@@ -23,7 +27,7 @@ body,
 html,
 body {
   color-scheme: dark;
-  font-family: "Geist Variable", "Manrope", system-ui, sans-serif;
+  font-family: var(--font-ui);
   background:
     radial-gradient(circle at top left, rgba(113, 113, 122, 0.18), transparent 28%),
     radial-gradient(circle at top right, rgba(82, 82, 91, 0.12), transparent 24%),
@@ -33,6 +37,10 @@ body {
 
 body {
   overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 a {

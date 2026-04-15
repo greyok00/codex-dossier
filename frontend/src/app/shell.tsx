@@ -167,43 +167,71 @@ function RuntimeStatusPanel() {
   );
 }
 
+function QuickGuideBanner({
+  onHide,
+}: {
+  onHide: () => Promise<void>;
+}) {
+  return (
+    <section aria-live="polite" className="quick-guide-card quick-guide-card--global">
+      <h2>Quickstart guide</h2>
+      <p>Start a case once to create a dossier with the original audio and its verified hash.</p>
+      <p>Then confirm the details, open Destinations, choose where the case should go, approve the brief, and save the filing receipt after you send or export it.</p>
+      <div className="button-row">
+        <button
+          className="secondary-button"
+          onClick={() => {
+            void onHide();
+          }}
+          type="button"
+        >
+          Hide guide
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function AuthenticatedShell({
   biometricAvailable,
   biometricEnabled,
-  captureBriefSeen,
   demoCaseId,
   db,
   fullAppWalkthroughEnabled,
   lastOpenPath,
   lockConfigured,
-  onCaptureBriefSeen,
   onLockNow,
+  onQuickGuideEnabledChange,
+  onQuickGuideSeenChange,
   onRequireUnlockOnOpenChange,
   onSaveAccessSettings,
+  quickGuideSeen,
   requireUnlockOnOpen,
   services,
 }: {
   biometricAvailable: boolean;
   biometricEnabled: boolean;
-  captureBriefSeen: boolean;
   db: DossierDatabase;
   fullAppWalkthroughEnabled: boolean;
   lastOpenPath: string | null;
   lockConfigured: boolean;
   demoCaseId: string | null;
-  onCaptureBriefSeen: () => Promise<void>;
   onLockNow: () => Promise<void>;
+  onQuickGuideEnabledChange: (enabled: boolean) => Promise<void>;
+  onQuickGuideSeenChange: (quickGuideSeen: boolean) => Promise<void>;
   onRequireUnlockOnOpenChange: (requireUnlockOnOpen: boolean) => Promise<void>;
   onSaveAccessSettings: (input: { pin: string; biometricEnabled: boolean }) => Promise<void>;
+  quickGuideSeen: boolean;
   requireUnlockOnOpen: boolean;
   services: AppServices;
 }) {
-  const defaultPath = normalizeAppPath(lastOpenPath) ?? (fullAppWalkthroughEnabled ? "/cases" : "/capture");
+  const defaultPath = normalizeAppPath(lastOpenPath) ?? "/cases";
 
   return (
     <div className="app-shell">
       <PersistLastOpenPath db={db} />
       <RuntimeStatusPanel />
+      {!quickGuideSeen ? <QuickGuideBanner onHide={() => onQuickGuideSeenChange(true)} /> : null}
       <div className="app-shell__content">
         <Routes>
           <Route path="/" element={<Navigate replace to={defaultPath} />} />
@@ -211,48 +239,53 @@ export function AuthenticatedShell({
             path="/capture"
             element={
               <CaptureScreen
-                captureBriefSeen={captureBriefSeen}
-                onCaptureBriefSeen={onCaptureBriefSeen}
                 services={services}
-                walkthroughEnabled={fullAppWalkthroughEnabled}
               />
             }
           />
           <Route
             path="/cases/:incidentId/capture-saved"
-            element={<CaptureSavedScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+            element={<CaptureSavedScreen db={db} services={services} walkthroughEnabled={false} />}
           />
           <Route
             path="/cases/:incidentId/transcript"
-            element={<TranscriptScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+            element={<TranscriptScreen db={db} services={services} walkthroughEnabled={false} />}
           />
           <Route
             path="/cases/:incidentId/facts"
-            element={<FactsScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+            element={<FactsScreen db={db} services={services} walkthroughEnabled={false} />}
           />
           <Route
             path="/cases/:incidentId/routes"
-            element={<CaseRoutesScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+            element={<CaseRoutesScreen db={db} services={services} />}
           />
           <Route
             path="/cases/:incidentId/draft"
-            element={<DraftReportScreen db={db} walkthroughEnabled={fullAppWalkthroughEnabled} services={services} />}
+            element={<DraftReportScreen db={db} services={services} />}
           />
           <Route
             path="/cases/:incidentId/send"
-            element={<SendHandoffScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+            element={<SendHandoffScreen db={db} services={services} />}
           />
           <Route path="/cases/:incidentId/proof" element={<ProofActionScreen db={db} />} />
           <Route
             path="/cases/:incidentId/export"
-            element={<ExportCaseFileScreen db={db} services={services} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+            element={<ExportCaseFileScreen db={db} services={services} walkthroughEnabled={false} />}
           />
           <Route
             path="/cases/:incidentId"
-            element={<CaseFileScreen db={db} demoCaseId={demoCaseId} walkthroughEnabled={fullAppWalkthroughEnabled} />}
+            element={<CaseFileScreen db={db} demoCaseId={demoCaseId} walkthroughEnabled={false} />}
           />
-          <Route path="/cases" element={<CasesScreen db={db} demoCaseId={demoCaseId} walkthroughEnabled={fullAppWalkthroughEnabled} />} />
-          <Route path="/routes" element={<RoutesIndexScreen db={db} demoCaseId={demoCaseId} walkthroughEnabled={fullAppWalkthroughEnabled} />} />
+          <Route
+            path="/cases"
+            element={
+              <CasesScreen
+                db={db}
+                demoCaseId={demoCaseId}
+              />
+            }
+          />
+          <Route path="/routes" element={<RoutesIndexScreen db={db} demoCaseId={demoCaseId} walkthroughEnabled={false} />} />
           <Route
             path="/settings/access"
             element={<AccessSettingsRoute biometricAvailable={biometricAvailable} onSaveAccessSettings={onSaveAccessSettings} />}
@@ -264,7 +297,11 @@ export function AuthenticatedShell({
                 biometricEnabled={biometricEnabled}
                 lockConfigured={lockConfigured}
                 onLockNow={onLockNow}
+                onQuickGuideEnabledChange={onQuickGuideEnabledChange}
+                onQuickGuideSeenChange={onQuickGuideSeenChange}
                 onRequireUnlockOnOpenChange={onRequireUnlockOnOpenChange}
+                quickGuideEnabled={fullAppWalkthroughEnabled}
+                quickGuideSeen={quickGuideSeen}
                 requireUnlockOnOpen={requireUnlockOnOpen}
               />
             }
@@ -273,7 +310,7 @@ export function AuthenticatedShell({
       </div>
       <nav aria-label="Primary" className="bottom-nav">
         <TabLink icon={Mic} to="/capture">Record</TabLink>
-        <TabLink icon={FolderOpen} to="/cases">Home</TabLink>
+        <TabLink icon={FolderOpen} to="/cases">Cases</TabLink>
         <TabLink icon={Send} to="/routes">Report</TabLink>
         <TabLink icon={Settings2} to="/settings">Settings</TabLink>
       </nav>
