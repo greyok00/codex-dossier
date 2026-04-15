@@ -7,6 +7,8 @@ import { defineConfig, loadEnv } from "vite";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, resolve(__dirname, ".."), "");
+  const appBase = env.VITE_APP_BASE || "/";
+  const shellBuild = env.VITE_APP_SHELL_BUILD === "true";
   const apiProxyTarget =
     env.VITE_DEV_API_PROXY_TARGET ||
     env.VITE_DOSSIER_BACKEND_URL ||
@@ -16,53 +18,60 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir: "..",
+    base: appBase,
     plugins: [
       react(),
       tailwindcss(),
-      VitePWA({
-        injectRegister: null,
-        registerType: "autoUpdate",
-        includeAssets: ["dossier-icon.svg", "dossier-icon-192.png", "dossier-icon-512.png", "apple-touch-icon.png"],
-        workbox: {
-          maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
-        },
-        manifest: {
-          name: "Dossier",
-          short_name: "Dossier",
-          description: "Capture once. Build the case. Send it with proof.",
-          theme_color: "#0a1016",
-          background_color: "#05080c",
-          display: "standalone",
-          start_url: "/",
-          scope: "/",
-          icons: [
-            {
-              src: "/dossier-icon-192.png",
-              sizes: "192x192",
-              type: "image/png",
-              purpose: "any",
-            },
-            {
-              src: "/dossier-icon-512.png",
-              sizes: "512x512",
-              type: "image/png",
-              purpose: "any",
-            },
-            {
-              src: "/dossier-icon-512.png",
-              sizes: "512x512",
-              type: "image/png",
-              purpose: "maskable",
-            },
-            {
-              src: "/dossier-icon.svg",
-              sizes: "512x512",
-              type: "image/svg+xml",
-              purpose: "any",
-            },
-          ],
-        },
-      }),
+      ...(
+        shellBuild
+          ? []
+          : [
+              VitePWA({
+                injectRegister: null,
+                registerType: "autoUpdate",
+                includeAssets: ["dossier-icon.svg", "dossier-icon-192.png", "dossier-icon-512.png", "apple-touch-icon.png"],
+                workbox: {
+                  maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
+                },
+                manifest: {
+                  name: "Dossier",
+                  short_name: "Dossier",
+                  description: "Capture once. Build the case. Send it with proof.",
+                  theme_color: "#0a1016",
+                  background_color: "#05080c",
+                  display: "standalone",
+                  start_url: "/",
+                  scope: "/",
+                  icons: [
+                    {
+                      src: "/dossier-icon-192.png",
+                      sizes: "192x192",
+                      type: "image/png",
+                      purpose: "any",
+                    },
+                    {
+                      src: "/dossier-icon-512.png",
+                      sizes: "512x512",
+                      type: "image/png",
+                      purpose: "any",
+                    },
+                    {
+                      src: "/dossier-icon-512.png",
+                      sizes: "512x512",
+                      type: "image/png",
+                      purpose: "maskable",
+                    },
+                    {
+                      src: "/dossier-icon.svg",
+                      sizes: "512x512",
+                      type: "image/svg+xml",
+                      purpose: "any",
+                    },
+                  ],
+                },
+              }),
+            ]
+      ),
     ],
     resolve: {
       alias: {

@@ -9,3 +9,6 @@ frontend/.env.local
 frontend/.android-sdk/
 frontend/.gradle/
 frontend/.jdks/
+tools/xtool/xtool-x86_64.AppImage
+ios-xtool-shell/Sources/ios_xtool_shell/Resources/WebApp/*
+!ios-xtool-shell/Sources/ios_xtool_shell/Resources/WebApp/.gitkeep

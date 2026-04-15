@@ -10,6 +10,7 @@
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios",
     "cap:sync": "npm run build && cap sync",
+    "build:ios:shell": "sh -c 'rm -rf ../ios-xtool-shell/Sources/ios_xtool_shell/Resources/WebApp && mkdir -p ../ios-xtool-shell/Sources/ios_xtool_shell/Resources/WebApp ../ios-xtool-shell/Resources && cp public/dossier-icon-512.png ../ios-xtool-shell/Resources/AppIcon.png && VITE_APP_SHELL_BUILD=true VITE_APP_BASE=./ tsc -p tsconfig.json && VITE_APP_SHELL_BUILD=true VITE_APP_BASE=./ VITE_DOSSIER_API_MODE=local vite build --outDir ../ios-xtool-shell/Sources/ios_xtool_shell/Resources/WebApp && touch ../ios-xtool-shell/Sources/ios_xtool_shell/Resources/WebApp/.gitkeep'",
     "android:build:debug": "sh -c './scripts/android-local-env.sh npm run cap:sync && cd android && ../scripts/android-local-env.sh ./gradlew --no-daemon assembleDebug'",
     "android:build:release": "sh -c './scripts/android-local-env.sh npm run cap:sync && cd android && ../scripts/android-local-env.sh ./gradlew --no-daemon assembleRelease'",
     "android:install:debug": "sh -c './scripts/android-local-env.sh npm run android:build:debug && cd android && ../scripts/android-local-env.sh ./gradlew --no-daemon installDebug'",

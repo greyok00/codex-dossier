@@ -1,0 +1,4 @@
+version: 1
+bundleID: io.dossier.app
+iconPath: Resources/AppIcon.png
+infoPath: Info.plist

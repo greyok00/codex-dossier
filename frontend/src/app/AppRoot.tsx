@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, HashRouter } from "react-router-dom";
 
 import { sha256Hex } from "@/lib/crypto";
 import {
@@ -242,6 +242,7 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
   const runtimeServices = useMemo<AppServices>(() => ({
     ...services,
   }), [services]);
+  const Router = typeof window !== "undefined" && window.location.protocol === "file:" ? HashRouter : BrowserRouter;
 
   if (!bootstrap.ready) {
     return <FullScreenShell title="Loading Dossier" body="Preparing this device." actionSlot={null} />;
@@ -263,7 +264,7 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
   }
 
   return (
-    <BrowserRouter>
+    <Router>
       <AuthenticatedShell
         biometricAvailable={bootstrap.biometricAvailable}
         biometricEnabled={bootstrap.biometricEnabled}
@@ -280,6 +281,6 @@ export function App({ services = createDefaultAppServices() }: AppProps) {
         requireUnlockOnOpen={bootstrap.requireUnlockOnOpen}
         services={runtimeServices}
       />
-    </BrowserRouter>
+    </Router>
   );
 }

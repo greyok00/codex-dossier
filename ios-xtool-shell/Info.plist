@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>Dossier uses your location to suggest relevant reporting options near you.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Dossier records audio so you can capture what happened and turn it into a documented case.</string>
+  <key>UISupportedInterfaceOrientations</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+  </array>
+</dict>
+</plist>
