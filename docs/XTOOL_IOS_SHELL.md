@@ -27,12 +27,34 @@ That command:
 
 The frontend also switches to `HashRouter` automatically when running from `file://`, which keeps in-app navigation working inside the bundled shell.
 
+## Repo Helpers
+
+This repo now includes helper scripts for the Linux `xtool` path:
+
+- `./scripts/xtool-env.sh`
+  - sets the repo-local Swiftly home directories
+  - resolves the active Swift toolchain binary directly instead of relying on the flaky Swiftly shim
+- `./scripts/xtool-status.sh`
+  - prints the current host Swift version
+  - prints installed Swift SDKs
+  - prints current xtool auth status
+- `./scripts/xtool-build-ipa.sh`
+  - runs `xtool dev build --ipa` inside `ios-xtool-shell`
+
+The repo also pins the intended host Swift line in `.swift-version`, currently `6.2.4`.
+
+Current state on this machine:
+
+- host Swift toolchain: `6.2.4`
+- Darwin Swift SDK: not installed
+- xtool auth: logged out
+
 ## Current External Requirements
 
 This repo work is now far enough along that the remaining blockers are external tool inputs, not missing shell code:
 
-- a host `swift` toolchain in `PATH`
 - an Apple Darwin SDK installed for SwiftPM
+- Apple authentication in xtool
 - an `Xcode.xip` or `Xcode.app` to feed into `xtool sdk install`
 
 `xtool` itself makes those requirements explicit:
@@ -42,13 +64,12 @@ This repo work is now far enough along that the remaining blockers are external 
 
 ## Recommended Next Steps
 
-1. Install a Linux Swift toolchain locally.
-2. Obtain an `Xcode.xip` payload and run `xtool sdk install <path>`.
+1. Obtain an `Xcode.xip` payload and run `./scripts/xtool-env.sh ./tools/xtool/xtool-x86_64.AppImage --appimage-extract-and-run sdk install <path>`.
+2. Log in with `./scripts/xtool-env.sh ./tools/xtool/xtool-x86_64.AppImage --appimage-extract-and-run auth login`.
 3. Run:
 
 ```bash
-cd ios-xtool-shell
-../tools/xtool/xtool-x86_64.AppImage --appimage-extract-and-run dev build --ipa
+./scripts/xtool-build-ipa.sh
 ```
 
 ## Notes
