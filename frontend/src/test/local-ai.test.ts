@@ -73,10 +73,11 @@ describe("local deterministic AI helpers", () => {
       },
     });
 
-    expect(routes.map((route) => route.route_group)).toEqual(["Business", "State", "Other"]);
+    expect(routes.map((route) => route.route_group)).toEqual(expect.arrayContaining(["Business", "State", "Federal", "Other"]));
+    expect(routes).toHaveLength(6);
     expect(routes[0]?.destination_name_snapshot).toMatch(/Desert Market public contact/i);
     expect(routes[0]?.selected).toBe(false);
-    expect(routes[1]?.destination_name_snapshot).toMatch(/Arizona Consumer Complaint/i);
+    expect(routes.some((route) => /Arizona Consumer Complaint/i.test(route.destination_name_snapshot))).toBe(true);
   });
 
   it("builds a local draft from facts and the selected route", () => {

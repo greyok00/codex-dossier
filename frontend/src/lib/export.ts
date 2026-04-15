@@ -3,6 +3,18 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 import type { CaseFileSummary } from "./db";
 
+const EXPORT_LOCAL_DATE_TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: true,
+  timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  timeZoneName: "short",
+});
+
 export async function buildCasePdf(summary: CaseFileSummary) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([612, 792]);
@@ -137,15 +149,5 @@ function formatLocalDateTime(value: string) {
     return value;
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    timeZoneName: "short",
-  }).format(parsed);
+  return EXPORT_LOCAL_DATE_TIME_FORMATTER.format(parsed);
 }

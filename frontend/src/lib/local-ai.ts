@@ -768,7 +768,7 @@ export function createWhisperTinyTranscriber(): LocalTranscriber {
 }
 
 async function resolvePreferredWhisperModel() {
-  const preferredModels = ["Xenova/whisper-base.en", "Xenova/whisper-tiny.en"];
+  const preferredModels = ["Xenova/whisper-tiny.en", "Xenova/whisper-base.en"];
 
   for (const model of preferredModels) {
     const available = await isBundledModelAvailable(model);
@@ -799,11 +799,7 @@ async function loadWhisperPipelineWithFallback(
       modelId: preferredModelId,
     };
   } catch (error) {
-    if (preferredModelId !== "Xenova/whisper-base.en") {
-      throw error;
-    }
-
-    const fallbackModel = "Xenova/whisper-tiny.en";
+    const fallbackModel = preferredModelId === "Xenova/whisper-tiny.en" ? "Xenova/whisper-base.en" : "Xenova/whisper-tiny.en";
     const hasFallback = await isBundledModelAvailable(fallbackModel);
     if (!hasFallback) {
       throw error;
@@ -811,7 +807,7 @@ async function loadWhisperPipelineWithFallback(
 
     onProgress?.({
       stage: "load",
-      label: "High-accuracy speech model is not supported here. Switching to compatible speech tools.",
+      label: "Primary speech model is not supported here. Switching to compatible speech tools.",
       progress: null,
       loaded_bytes: null,
       total_bytes: null,

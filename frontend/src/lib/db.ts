@@ -1,7 +1,5 @@
 import Dexie, { type Table } from "dexie";
 
-export type ThemeMode = "slate" | "paper";
-
 export interface StoredSession {
   id: "current";
   user: {
@@ -317,7 +315,6 @@ export class DossierDatabase extends Dexie {
 
 export const database = new DossierDatabase();
 
-const THEME_KEY = "theme";
 const LOCK_HASH_KEY = "device_lock_hash";
 const INSTALL_ID_KEY = "device_install_id";
 const RECOVERY_EMAIL_KEY = "recovery_email";
@@ -335,7 +332,6 @@ const FULL_APP_WALKTHROUGH_ENABLED_KEY = "full_app_walkthrough_enabled";
 const DEMO_WALKTHROUGH_CASE_ID_KEY = "demo_walkthrough_case_id";
 
 export interface BootstrapState {
-  theme: ThemeMode;
   lock_hash: string | null;
   install_id: string;
   recovery_email: string | null;
@@ -354,7 +350,6 @@ export interface BootstrapState {
 
 export async function loadBootstrapState(db: DossierDatabase): Promise<BootstrapState> {
   const [
-    theme,
     lockHash,
     installId,
     recoveryEmail,
@@ -371,7 +366,6 @@ export async function loadBootstrapState(db: DossierDatabase): Promise<Bootstrap
     fullAppWalkthroughEnabled,
   ] =
     await Promise.all([
-      getSetting<ThemeMode>(db, THEME_KEY),
       getSetting<string>(db, LOCK_HASH_KEY),
       getSetting<string>(db, INSTALL_ID_KEY),
       getSetting<string>(db, RECOVERY_EMAIL_KEY),
@@ -394,7 +388,6 @@ export async function loadBootstrapState(db: DossierDatabase): Promise<Bootstrap
   }
 
   return {
-    theme: theme ?? "slate",
     lock_hash: lockHash ?? null,
     install_id: ensuredInstallId,
     recovery_email: recoveryEmail ?? null,
@@ -410,10 +403,6 @@ export async function loadBootstrapState(db: DossierDatabase): Promise<Bootstrap
     draft_walkthrough_seen: draftWalkthroughSeen ?? false,
     full_app_walkthrough_enabled: fullAppWalkthroughEnabled ?? true,
   };
-}
-
-export async function setTheme(db: DossierDatabase, theme: ThemeMode) {
-  await setSetting(db, THEME_KEY, theme);
 }
 
 export async function setDeviceLockHash(db: DossierDatabase, lockHash: string) {
@@ -567,7 +556,7 @@ export async function ensureDemoWalkthroughCase(db: DossierDatabase): Promise<st
     segment_count: 2,
     model_metadata_json: {
       mode: "demo",
-      model: "Xenova/whisper-base.en",
+      model: "Xenova/whisper-tiny.en",
     },
     warnings_json: [],
     created_at: now,

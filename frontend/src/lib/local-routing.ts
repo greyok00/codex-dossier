@@ -78,6 +78,7 @@ interface BuiltRoute {
 const registryEntries = (routingRegistryBundle as RegistryBundle).destinations;
 
 const GROUP_ORDER: RouteGroup[] = ["Business", "Local", "State", "Federal", "Other"];
+const MAX_RECOMMENDATIONS = 6;
 
 const BUSINESS_TYPE_KEYWORDS: Array<{ type: string; patterns: RegExp[] }> = [
   { type: "retail", patterns: [/\bmarket\b/iu, /\bstore\b/iu, /\bshop\b/iu, /\bretail\b/iu] },
@@ -163,6 +164,7 @@ export function buildDeterministicRouteRecommendations(input: {
     });
   }
   builtRoutes.push(...buildFallbackRoutes(input, state, policeMisconductCase));
+  builtRoutes.push(...buildFederalResourceRoutes(input, categories, businessTypes, policeMisconductCase));
 
   const sortedByRelevance = builtRoutes
     .sort((left, right) => {
@@ -184,7 +186,7 @@ export function buildDeterministicRouteRecommendations(input: {
   const selectedGroups = new Set<RouteGroup>();
 
   for (const candidate of relevant) {
-    if (selected.length >= 3) {
+    if (selected.length >= Math.min(5, MAX_RECOMMENDATIONS)) {
       break;
     }
     if (selectedGroups.has(candidate.recommendation.route_group)) {
@@ -195,7 +197,7 @@ export function buildDeterministicRouteRecommendations(input: {
   }
 
   for (const candidate of relevant) {
-    if (selected.length >= 3) {
+    if (selected.length >= MAX_RECOMMENDATIONS) {
       break;
     }
     if (selected.includes(candidate)) {
@@ -204,9 +206,9 @@ export function buildDeterministicRouteRecommendations(input: {
     selected.push(candidate);
   }
 
-  if (selected.length < 3) {
+  if (selected.length < MAX_RECOMMENDATIONS) {
     for (const candidate of sortedByRelevance) {
-      if (selected.length >= 3) {
+      if (selected.length >= MAX_RECOMMENDATIONS) {
         break;
       }
       if (selected.includes(candidate)) {
@@ -314,7 +316,10 @@ function buildEmergencyRoutes(
   return routes;
 }
 
-function getLocalPoliceResource(state: string | null, city: string | null) {
+function getLocalPoliceResource(
+  state: string | null,
+  city: string | null,
+): Pick<RouteRecommendationDto, "source_label" | "source_url" | "trust_level" | "complaint_url"> | null {
   if (state && city) {
     return null;
   }
@@ -460,6 +465,198 @@ function buildFallbackRoutes(
       },
       priority: 45,
       relevance: 74,
+    });
+  }
+
+  return routes;
+}
+
+function buildFederalResourceRoutes(
+  input: {
+    incident_id: string;
+    fact_set: FactSetDto;
+    context: RouteContext;
+  },
+  categories: string[],
+  businessTypes: string[],
+  policeMisconductCase: boolean,
+): BuiltRoute[] {
+  const routes: BuiltRoute[] = [];
+  const haystack = [
+    input.fact_set.incident_type,
+    ...input.fact_set.businesses,
+    ...input.fact_set.key_facts,
+    input.context.transcript_excerpt,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (policeMisconductCase || categories.includes("civil_rights")) {
+    routes.push({
+      recommendation: {
+        id: crypto.randomUUID(),
+        destination_id: null,
+        destination_name_snapshot: "U.S. Department of Justice Civil Rights Reporting Portal",
+        destination_type_snapshot: "federal_agency",
+        route_group: "Federal",
+        rank: 0,
+        reason: "Use the DOJ portal for federal civil rights complaints, including police misconduct and excessive force.",
+        source_label: "civilrights.justice.gov",
+        source_url: "https://civilrights.justice.gov/report/",
+        trust_level: "official",
+        last_verified_date: new Date().toISOString().slice(0, 10),
+        complaint_url: "https://civilrights.justice.gov/report/",
+        email: null,
+        phone: null,
+        mailing_address: null,
+        intake_methods_snapshot: ["web_form"],
+        required_documents_snapshot: ["Case summary", "Dates", "Agency or officer details", "Proof packet"],
+        available_actions: ["open_form", "share_packet", "export_packet", "save_for_later"],
+        selected: false,
+      },
+      priority: 72,
+      relevance: 88,
+    });
+  }
+
+  if (categories.includes("tenant_issue")) {
+    routes.push({
+      recommendation: {
+        id: crypto.randomUUID(),
+        destination_id: null,
+        destination_name_snapshot: "USAGov Housing Complaint Guide",
+        destination_type_snapshot: "federal_agency",
+        route_group: "Federal",
+        rank: 0,
+        reason: "Use the USAGov housing complaint guide to reach the correct housing, landlord, or fair-housing complaint path.",
+        source_label: "usa.gov",
+        source_url: "https://www.usa.gov/housing-complaints",
+        trust_level: "official",
+        last_verified_date: new Date().toISOString().slice(0, 10),
+        complaint_url: "https://www.usa.gov/housing-complaints",
+        email: null,
+        phone: null,
+        mailing_address: null,
+        intake_methods_snapshot: ["web_form"],
+        required_documents_snapshot: ["Lease or rental documents", "Timeline", "Photos or records if available", "Proof packet"],
+        available_actions: ["open_form", "share_packet", "export_packet", "save_for_later"],
+        selected: false,
+      },
+      priority: 68,
+      relevance: 86,
+    });
+  }
+
+  if (categories.includes("workplace_wages")) {
+    routes.push({
+      recommendation: {
+        id: crypto.randomUUID(),
+        destination_id: null,
+        destination_name_snapshot: "U.S. Department of Labor Wage and Hour Complaint Information",
+        destination_type_snapshot: "federal_agency",
+        route_group: "Federal",
+        rank: 0,
+        reason: "Use the Department of Labor Wage and Hour complaint path for wage, overtime, and pay practice issues.",
+        source_label: "dol.gov",
+        source_url: "https://www.dol.gov/agencies/whd/contact/complaints/information?lang=en",
+        trust_level: "official",
+        last_verified_date: new Date().toISOString().slice(0, 10),
+        complaint_url: "https://www.dol.gov/agencies/whd/contact/complaints/information?lang=en",
+        email: null,
+        phone: null,
+        mailing_address: null,
+        intake_methods_snapshot: ["web_form", "phone"],
+        required_documents_snapshot: ["Employer name", "Pay records if available", "Hours worked", "Proof packet"],
+        available_actions: ["open_form", "call", "share_packet", "export_packet", "save_for_later"],
+        selected: false,
+      },
+      priority: 67,
+      relevance: 85,
+    });
+  }
+
+  if (categories.includes("fraud_or_deception")) {
+    routes.push({
+      recommendation: {
+        id: crypto.randomUUID(),
+        destination_id: null,
+        destination_name_snapshot: "Federal Trade Commission ReportFraud",
+        destination_type_snapshot: "federal_agency",
+        route_group: "Federal",
+        rank: 0,
+        reason: "Use ReportFraud for scams, deceptive practices, suspicious communications, and identity-theft related complaints.",
+        source_label: "reportfraud.ftc.gov",
+        source_url: "https://reportfraud.ftc.gov/",
+        trust_level: "official",
+        last_verified_date: new Date().toISOString().slice(0, 10),
+        complaint_url: "https://reportfraud.ftc.gov/",
+        email: null,
+        phone: null,
+        mailing_address: null,
+        intake_methods_snapshot: ["web_form"],
+        required_documents_snapshot: ["What happened", "Dates", "Contact details used by the scammer", "Proof packet"],
+        available_actions: ["open_form", "share_packet", "export_packet", "save_for_later"],
+        selected: false,
+      },
+      priority: 64,
+      relevance: 84,
+    });
+  }
+
+  if (categories.some((category) => category.startsWith("consumer_") || category === "retail_transaction" || category === "service_quality")) {
+    routes.push({
+      recommendation: {
+        id: crypto.randomUUID(),
+        destination_id: null,
+        destination_name_snapshot: "USAGov Consumer Complaint Guide",
+        destination_type_snapshot: "federal_agency",
+        route_group: "Federal",
+        rank: 0,
+        reason: "Use the USAGov guide to find official federal and state complaint paths for company product and service issues.",
+        source_label: "usa.gov",
+        source_url: "https://www.usa.gov/company-product-service-complaints",
+        trust_level: "official",
+        last_verified_date: new Date().toISOString().slice(0, 10),
+        complaint_url: "https://www.usa.gov/company-product-service-complaints",
+        email: null,
+        phone: null,
+        mailing_address: null,
+        intake_methods_snapshot: ["web_form"],
+        required_documents_snapshot: ["Company name", "Transaction records", "Timeline", "Proof packet"],
+        available_actions: ["open_form", "share_packet", "export_packet", "save_for_later"],
+        selected: false,
+      },
+      priority: 60,
+      relevance: 82,
+    });
+  }
+
+  if (businessTypes.some((type) => ["bank", "credit_card_issuer", "internet_provider"].includes(type)) || /\bbank\b|\bcredit\b|\bcard\b|\bloan\b|\bwireless\b|\bcell\b|\bphone service\b/u.test(haystack)) {
+    routes.push({
+      recommendation: {
+        id: crypto.randomUUID(),
+        destination_id: null,
+        destination_name_snapshot: "Consumer Financial Protection Bureau Complaint",
+        destination_type_snapshot: "federal_agency",
+        route_group: "Federal",
+        rank: 0,
+        reason: "Use the CFPB complaint path for bank, credit card, lending, and some telecom billing issues.",
+        source_label: "consumerfinance.gov",
+        source_url: "https://www.consumerfinance.gov/complaint/",
+        trust_level: "official",
+        last_verified_date: new Date().toISOString().slice(0, 10),
+        complaint_url: "https://www.consumerfinance.gov/complaint/",
+        email: null,
+        phone: null,
+        mailing_address: null,
+        intake_methods_snapshot: ["web_form"],
+        required_documents_snapshot: ["Account or transaction information", "Dates", "Billing records", "Proof packet"],
+        available_actions: ["open_form", "share_packet", "export_packet", "save_for_later"],
+        selected: false,
+      },
+      priority: 66,
+      relevance: 86,
     });
   }
 

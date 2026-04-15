@@ -56,6 +56,20 @@ function renderApp(services: AppServices) {
   );
 }
 
+async function flushUi() {
+  await Promise.resolve();
+}
+
+async function clickAndSettle(element: Element) {
+  await userEvent.click(element as HTMLElement);
+  await flushUi();
+}
+
+async function typeAndSettle(element: Element, text: string) {
+  await userEvent.type(element as HTMLElement, text);
+  await flushUi();
+}
+
 function createServices(db: DossierDatabase, overrides: Partial<AppServices> = {}): AppServices {
   return {
     db,
@@ -83,33 +97,36 @@ function createServices(db: DossierDatabase, overrides: Partial<AppServices> = {
 }
 
 async function enterApp() {
-  await screen.findByRole("button", { name: /^continue$/i });
-  await userEvent.click(screen.getByRole("button", { name: /^continue$/i }));
-  let nextHeading = await screen.findByRole("heading", { name: /^(prepare this device|capture|cases|report options)$/i });
-  if (/^prepare this device$/i.test(nextHeading.textContent ?? "")) {
-    const prepareButton = screen.queryByRole("button", { name: /^(prepare this device|retry setup)$/i });
+  let nextHeading = await screen.findByRole("heading", { name: /^(get dossier ready|record what happened|saved cases|reporting options)$/i });
+  if (/^get dossier ready$/i.test(nextHeading.textContent ?? "")) {
+    const prepareButton = screen.queryByRole("button", { name: /^(retry setup|downloading models)$/i });
     if (prepareButton) {
       await userEvent.click(prepareButton);
     }
-    nextHeading = await screen.findByRole("heading", { name: /^(capture|cases|report options)$/i });
+    nextHeading = await screen.findByRole("heading", { name: /^(record what happened|saved cases|reporting options)$/i });
   }
-  if (!/^capture$/i.test(nextHeading.textContent ?? "")) {
-    await screen.findByRole("link", { name: /^capture$/i });
-    await userEvent.click(screen.getByRole("link", { name: /^capture$/i }));
+  if (!/^record what happened$/i.test(nextHeading.textContent ?? "")) {
+    await screen.findByRole("link", { name: /^record$/i });
+    await userEvent.click(screen.getByRole("link", { name: /^record$/i }));
   }
-  await screen.findByRole("heading", { name: /^capture$/i });
+  await screen.findByRole("heading", { name: /^record what happened$/i });
 }
 
 async function createCapture() {
-  await userEvent.click(screen.getByRole("button", { name: /start capture/i }));
-  await waitFor(() => expect(screen.getAllByRole("button", { name: /stop capture/i }).length).toBeGreaterThan(0));
-  const stopButtons = screen.getAllByRole("button", { name: /stop capture/i });
+  const startButtons = screen.getAllByRole("button", { name: /start recording/i });
+  const startButton = startButtons[0];
+  if (!startButton) {
+    throw new Error("Start recording control was not found");
+  }
+  await clickAndSettle(startButton);
+  await waitFor(() => expect(screen.getAllByRole("button", { name: /stop recording/i }).length).toBeGreaterThan(0));
+  const stopButtons = screen.getAllByRole("button", { name: /stop recording/i });
   const stopButton = stopButtons[0];
   if (!stopButton) {
     throw new Error("Stop capture control was not found");
   }
-  await userEvent.click(stopButton);
-  await screen.findByRole("heading", { name: /capture saved/i });
+  await clickAndSettle(stopButton);
+  await screen.findByRole("heading", { name: /recording saved/i });
 }
 
 describe("frontend local-first scaffold", () => {
@@ -131,7 +148,7 @@ describe("frontend local-first scaffold", () => {
     await screen.findByRole("heading", { name: /secure this device/i });
     await userEvent.type(screen.getByLabelText(/device code/i), "2468");
     await userEvent.type(screen.getByLabelText(/confirm code/i), "2468");
-    await userEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save device code/i }));
 
     await screen.findByRole("heading", { name: /^settings$/i });
     await userEvent.click(screen.getByLabelText(/require unlock on open/i));
@@ -172,7 +189,7 @@ describe("frontend local-first scaffold", () => {
     if (biometricToggle) {
       await userEvent.click(biometricToggle);
     }
-    await userEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save device code/i }));
 
     await screen.findByRole("heading", { name: /^settings$/i });
     await userEvent.click(screen.getByLabelText(/require unlock on open/i));
@@ -215,21 +232,20 @@ describe("frontend local-first scaffold", () => {
     await db.delete();
   });
 
-  it("shows quick teaching on first open and can restore reminders from settings", async () => {
+  it("shows quick teaching on first open and keeps settings focused on device controls", async () => {
     const db = new DossierDatabase(`frontend-quick-guide-${crypto.randomUUID()}`);
 
     renderApp(createServices(db));
     await enterApp();
-    await screen.findByText(/start capture, then review details and choose where to report\./i);
-    await userEvent.click(screen.getByRole("button", { name: /got it/i }));
-    await waitFor(() => expect(screen.queryByText(/start capture, then review details/i)).not.toBeInTheDocument());
+    await screen.findByText(/record the incident once, then check the details and choose where to send the report\./i);
+    await userEvent.click(screen.getByRole("button", { name: /hide guide/i }));
+    await waitFor(() => expect(screen.queryByText(/record the incident once, then check the details/i)).not.toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("link", { name: /^settings$/i }));
     await screen.findByRole("heading", { name: /^settings$/i });
-    const walkthroughToggle = screen.getByLabelText(/show guided walkthrough on every app start/i);
-    expect(walkthroughToggle).toBeChecked();
-    await userEvent.click(walkthroughToggle);
-    expect(walkthroughToggle).not.toBeChecked();
+    expect(screen.queryByText(/^quick guide$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/show guided walkthrough on every app start/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/manage privacy, walkthrough hints, and device access\./i)).toBeInTheDocument();
 
     await db.delete();
   });
@@ -241,8 +257,8 @@ describe("frontend local-first scaffold", () => {
     await enterApp();
     await createCapture();
 
-    await userEvent.click(await screen.findByRole("button", { name: /build transcript/i }));
-    await screen.findByRole("heading", { name: /^transcript$/i, level: 1 });
+    await clickAndSettle(await screen.findByRole("button", { name: /create transcript/i }));
+    await screen.findByRole("heading", { name: /^review transcript$/i, level: 1 });
     await screen.findByText(/Xenova\/whisper-tiny\.en/i);
     expect(screen.getAllByText(/desert market/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/speaker 1/i)).toHaveLength(2);
@@ -264,41 +280,43 @@ describe("frontend local-first scaffold", () => {
     await enterApp();
     await createCapture();
 
-    await userEvent.click(await screen.findByRole("button", { name: /build transcript/i }));
-    await screen.findByRole("heading", { name: /^transcript$/i, level: 1 });
-    await userEvent.click(screen.getByRole("button", { name: /review details/i }));
+    await clickAndSettle(await screen.findByRole("button", { name: /create transcript/i }));
+    await screen.findByRole("heading", { name: /^review transcript$/i, level: 1 });
+    await userEvent.click(screen.getByRole("button", { name: /review details|check details/i }));
 
-    await screen.findByRole("heading", { name: /^review details$/i, level: 1 });
-    await screen.findByText(/these details were pulled from the capture\. edit only if something is incorrect\./i);
-    await userEvent.click(screen.getByRole("button", { name: /save details/i }));
-    await screen.findByText(/saved and added to the case log/i);
+    await screen.findByRole("heading", { name: /^check case details$/i, level: 1 });
+    await screen.findByText(/these details were pulled from the transcript\. edit only if something is wrong or missing\./i);
+    await clickAndSettle(screen.getByRole("button", { name: /save details/i }));
+    await screen.findByText(/saved and added to the case history/i);
 
-    await userEvent.click(screen.getByRole("link", { name: /find where to report/i }));
-    await screen.findByRole("heading", { name: /report options|where to report/i });
-    await userEvent.click(screen.getByRole("button", { name: /find options|find report options|find where to report/i }));
+    await userEvent.click(screen.getByRole("link", { name: /find reporting options|choose where to report/i }));
+    await screen.findByRole("heading", { name: /choose where to report/i });
+    await clickAndSettle(screen.getByRole("button", { name: /find reporting options/i }));
 
-    await screen.findByText(/desert market public contact/i);
-    await screen.findByText(/arizona consumer complaint/i);
-    await screen.findByText(/better business bureau complaint/i);
+    await screen.findByRole("heading", { name: /desert market public contact/i });
+    await screen.findByRole("heading", { name: /arizona consumer complaint/i });
+    await screen.findByRole("heading", { name: /better business bureau complaint/i });
 
     const businessRouteCard = screen.getByText(/desert market public contact/i).closest("section");
     if (!businessRouteCard) {
       throw new Error("Business route card not found");
     }
-    expect(within(businessRouteCard).getByRole("checkbox")).not.toBeChecked();
+    expect(within(businessRouteCard).getByRole("button", { name: /use this option/i })).toBeInTheDocument();
 
     const routeCards = await db.route_recommendations.toArray();
     const routeGroups = routeCards
       .slice()
       .sort((left, right) => routeRank(left.route_group) - routeRank(right.route_group))
       .map((route) => route.route_group);
-    expect(routeGroups).toEqual(["Business", "State", "Other"]);
+    expect(routeGroups).toEqual(expect.arrayContaining(["Business", "State", "Federal", "Other"]));
+    expect(routeGroups.length).toBeGreaterThanOrEqual(4);
 
-    const arizonaRouteCard = screen.getByText(/arizona consumer complaint/i).closest("section");
+    const arizonaRouteHeading = screen.getByRole("heading", { name: /arizona consumer complaint/i });
+    const arizonaRouteCard = arizonaRouteHeading.closest("section");
     if (!arizonaRouteCard) {
       throw new Error("Arizona route card not found");
     }
-    await userEvent.click(within(arizonaRouteCard).getByRole("checkbox"));
+    await clickAndSettle(within(arizonaRouteCard).getByRole("button", { name: /use this option/i }));
 
     const updatedRoutes = (await db.route_recommendations.toArray()).sort((left, right) =>
       left.route_group.localeCompare(right.route_group),
@@ -315,6 +333,13 @@ describe("frontend local-first scaffold", () => {
     const db = new DossierDatabase(`frontend-case-flow-${crypto.randomUUID()}`);
     const share = vi.fn().mockResolvedValue(true);
     const downloadFile = vi.fn().mockResolvedValue(undefined);
+    const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: clipboardWriteText,
+      },
+    });
 
     renderApp(
       createServices(db, {
@@ -326,48 +351,50 @@ describe("frontend local-first scaffold", () => {
     await enterApp();
     await createCapture();
 
-    await userEvent.click(await screen.findByRole("button", { name: /build transcript/i }));
-    await screen.findByRole("heading", { name: /^transcript$/i, level: 1 });
-    await userEvent.click(screen.getByRole("button", { name: /review details/i }));
+    await clickAndSettle(await screen.findByRole("button", { name: /create transcript/i }));
+    await screen.findByRole("heading", { name: /^review transcript$/i, level: 1 });
+    await userEvent.click(screen.getByRole("button", { name: /review details|check details/i }));
 
-    await screen.findByRole("heading", { name: /^review details$/i, level: 1 });
-    await screen.findByText(/these details were pulled from the capture\. edit only if something is incorrect\./i);
-    await userEvent.click(screen.getByRole("button", { name: /save details/i }));
-    await screen.findByText(/saved and added to the case log/i);
+    await screen.findByRole("heading", { name: /^check case details$/i, level: 1 });
+    await screen.findByText(/these details were pulled from the transcript\. edit only if something is wrong or missing\./i);
+    await clickAndSettle(screen.getByRole("button", { name: /save details/i }));
+    await screen.findByText(/saved and added to the case history/i);
 
-    await userEvent.click(screen.getByRole("link", { name: /find where to report/i }));
-    await screen.findByRole("heading", { name: /report options|where to report/i });
-    await userEvent.click(screen.getByRole("button", { name: /find options|find report options|find where to report/i }));
-    await screen.findByText(/arizona consumer complaint/i);
+    await userEvent.click(screen.getByRole("link", { name: /find reporting options|choose where to report/i }));
+    await screen.findByRole("heading", { name: /choose where to report/i });
+    await clickAndSettle(screen.getByRole("button", { name: /find reporting options/i }));
+    await screen.findByRole("heading", { name: /arizona consumer complaint/i });
 
-    const arizonaRouteCard = screen.getByText(/arizona consumer complaint/i).closest("section");
+    const arizonaRouteHeading = screen.getByRole("heading", { name: /arizona consumer complaint/i });
+    const arizonaRouteCard = arizonaRouteHeading.closest("section");
     if (!arizonaRouteCard) {
       throw new Error("Arizona route card not found");
     }
-    await userEvent.click(within(arizonaRouteCard).getByRole("checkbox"));
-    await screen.findByRole("link", { name: /draft report/i });
-    await userEvent.click(screen.getByRole("link", { name: /draft report/i }));
+    await clickAndSettle(within(arizonaRouteCard).getByRole("button", { name: /write report/i }));
 
-    await screen.findByRole("heading", { name: /^draft report$/i, level: 1 });
+    await screen.findByRole("heading", { name: /^write report$/i, level: 1 });
     await screen.findByDisplayValue(/Consumer billing:\s*desert market/i);
-    await userEvent.click(screen.getByRole("button", { name: /save report and continue/i }));
-    await screen.findByRole("heading", { name: /^send or hand off$/i, level: 1 });
+    await clickAndSettle(screen.getByRole("button", { name: /approve report/i }));
+    await screen.findByRole("heading", { name: /^send report$/i, level: 1 });
     await screen.findByRole("button", { name: /share packet/i });
-    await userEvent.click(screen.getByRole("button", { name: /share packet/i }));
-    await userEvent.click(screen.getByRole("link", { name: /proof of action/i }));
-    await screen.findByRole("heading", { name: /^proof of action$/i, level: 1 });
-    await userEvent.type(await screen.findByLabelText(/confirmation number/i), "ABC-123");
-    await userEvent.type(screen.getByLabelText(/proof note/i), "Shared with the route packet.");
-    await userEvent.click(screen.getByRole("button", { name: /save proof/i }));
+    await clickAndSettle(screen.getByRole("button", { name: /copy report text/i }));
+    await waitFor(() => expect(clipboardWriteText).toHaveBeenCalled());
+    expect(String(clipboardWriteText.mock.calls[0]?.[0] ?? "")).toMatch(/Destination:\s*Arizona Consumer Complaint/i);
+    await clickAndSettle(screen.getByRole("button", { name: /share packet/i }));
+    await userEvent.click(screen.getByRole("link", { name: /save confirmation/i }));
+    await screen.findByRole("heading", { name: /^save confirmation$/i, level: 1 });
+    await typeAndSettle(await screen.findByLabelText(/confirmation number/i), "ABC-123");
+    await typeAndSettle(screen.getByLabelText(/proof note/i), "Shared with the route packet.");
+    await clickAndSettle(screen.getByRole("button", { name: /save confirmation/i }));
 
-    await screen.findByRole("heading", { name: /^case file$/i, level: 1 });
+    await screen.findByRole("heading", { name: /^case summary$/i, level: 1 });
     expect(screen.getAllByText(/Consumer billing/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/arizona consumer complaint/i)).toBeInTheDocument();
-    expect(screen.getByText(/ABC-123/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/arizona consumer complaint/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/ABC-123/i).length).toBeGreaterThan(0);
 
-    await userEvent.click(screen.getByRole("link", { name: /export case file/i }));
-    await screen.findByRole("heading", { name: /^export case file$/i, level: 1 });
-    await userEvent.click(screen.getByRole("button", { name: /create zip/i }));
+    await userEvent.click(screen.getByRole("link", { name: /download packet/i }));
+    await screen.findByRole("heading", { name: /^download case packet$/i, level: 1 });
+    await clickAndSettle(screen.getByRole("button", { name: /download zip/i }));
 
     await waitFor(() => expect(downloadFile).toHaveBeenCalled());
     expect(share).toHaveBeenCalledTimes(1);

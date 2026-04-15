@@ -1,16 +1,24 @@
 import { resolve } from "node:path";
 
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig, loadEnv } from "vite";
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, __dirname, "");
-  const apiProxyTarget = env.VITE_DEV_API_PROXY_TARGET || env.VITE_API_BASE_URL || env.VITE_API_BASE || "http://127.0.0.1:3000";
+  const env = loadEnv(mode, resolve(__dirname, ".."), "");
+  const apiProxyTarget =
+    env.VITE_DEV_API_PROXY_TARGET ||
+    env.VITE_DOSSIER_BACKEND_URL ||
+    env.VITE_API_BASE_URL ||
+    env.VITE_API_BASE ||
+    "http://127.0.0.1:3100";
 
   return {
+    envDir: "..",
     plugins: [
       react(),
+      tailwindcss(),
       VitePWA({
         injectRegister: null,
         registerType: "autoUpdate",
@@ -77,6 +85,63 @@ export default defineConfig(({ mode }) => {
     preview: {
       host: "0.0.0.0",
       port: 4180,
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) {
+              return undefined;
+            }
+
+            if (
+              id.includes("/react/") ||
+              id.includes("/react-dom/") ||
+              id.includes("/react-router-dom/") ||
+              id.includes("/@tanstack/react-query/")
+            ) {
+              return "react-vendor";
+            }
+
+            if (
+              id.includes("/lucide-react/") ||
+              id.includes("/framer-motion/") ||
+              id.includes("/@radix-ui/") ||
+              id.includes("/clsx/") ||
+              id.includes("/class-variance-authority/") ||
+              id.includes("/tailwind-merge/") ||
+              id.includes("/@fontsource/")
+            ) {
+              return "ui-vendor";
+            }
+
+            if (id.includes("/pdf-lib/")) {
+              return "pdf-vendor";
+            }
+
+            if (id.includes("/jszip/")) {
+              return "zip-vendor";
+            }
+
+            if (id.includes("/dexie/")) {
+              return "storage-vendor";
+            }
+
+            if (
+              id.includes("/@huggingface/transformers/") ||
+              id.includes("/transformers.web")
+            ) {
+              return "ai-vendor";
+            }
+
+            if (id.includes("/onnxruntime-web/")) {
+              return "onnx-vendor";
+            }
+
+            return undefined;
+          },
+        },
+      },
     },
     test: {
       environment: "jsdom",

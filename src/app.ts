@@ -5,6 +5,7 @@ import { registerCorsPlugin } from "./plugins/cors.js";
 import { registerAuthPlugin } from "./plugins/auth.js";
 import { registerAIRoutes } from "./routes/ai.js";
 import { registerAuthRoutes } from "./routes/auth.js";
+import { registerHealthRoutes } from "./routes/health.js";
 import { registerInternalRegistryRoutes } from "./routes/internal-registry.js";
 import { registerPublicRegistryRoutes } from "./routes/public-registry.js";
 import { registerRoutingRoutes } from "./routes/routes.js";
@@ -69,6 +70,7 @@ export function buildApp(db: Pool, dependencies: AppDependencies = {}): FastifyI
   void registerCorsPlugin(app);
   void registerAuthPlugin(app);
   void app.register(registerAuthRoutes);
+  void app.register(registerHealthRoutes);
   void app.register(registerAIRoutes);
   void app.register(registerInternalRegistryRoutes);
   void app.register(registerPublicRegistryRoutes);

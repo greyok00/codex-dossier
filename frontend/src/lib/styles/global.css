@@ -1,0 +1,48 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource/manrope";
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+}
+
+html,
+body {
+  color-scheme: dark;
+  font-family: "Geist Variable", "Manrope", system-ui, sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(113, 113, 122, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(82, 82, 91, 0.12), transparent 24%),
+    linear-gradient(180deg, #101114 0%, #0b0c0f 100%);
+  color: #f5f7fa;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}

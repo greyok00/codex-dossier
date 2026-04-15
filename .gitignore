@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .docker/
+.codex
 .env
 .env.local
 frontend/.env

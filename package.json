@@ -8,6 +8,10 @@
     "doc": "docs"
   },
   "scripts": {
+    "backend:build": "tsc -p tsconfig.json",
+    "backend:check": "tsc -p tsconfig.json --noEmit",
+    "backend:dev": "tsx watch src/server.ts",
+    "backend:start": "node dist/server.js",
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "db:test:up": "docker compose up -d postgres",

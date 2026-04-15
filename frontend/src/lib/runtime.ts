@@ -1,6 +1,6 @@
 import type { DossierDatabase, FactTimelineItemRecord, RouteGroup, RouteTrustLevel } from "./db";
+import { getFrontendConfig } from "./config";
 import { database } from "./db";
-import { createLocalApiClient } from "./local-ai";
 
 interface PositionSnapshot {
   lat: number | null;
@@ -332,6 +332,33 @@ export interface AppServices {
 
 let defaultAppServicesSingleton: AppServices | null = null;
 
+function createLazyLocalApiClient(): ApiClient {
+  let clientPromise: Promise<ApiClient> | null = null;
+
+  async function getClient() {
+    clientPromise ??= import("./local-ai").then(({ createLocalApiClient }) => createLocalApiClient());
+    return clientPromise;
+  }
+
+  return {
+    async prepareLocalAi(input) {
+      return (await getClient()).prepareLocalAi(input);
+    },
+    async transcribe(input) {
+      return (await getClient()).transcribe(input);
+    },
+    async extract(input) {
+      return (await getClient()).extract(input);
+    },
+    async recommendRoutes(input) {
+      return (await getClient()).recommendRoutes(input);
+    },
+    async draft(input) {
+      return (await getClient()).draft(input);
+    },
+  };
+}
+
 export type FrontendRuntimeErrorCode =
   | "device_unlock_unavailable"
   | "device_unlock_failed"
@@ -577,7 +604,7 @@ export function createDefaultAppServices(): AppServices {
 
   defaultAppServicesSingleton = {
     db: database,
-    api: createLocalApiClient(),
+    api: getFrontendConfig().apiMode === "backend" ? createApiClient(getFrontendConfig().backendUrl) : createLazyLocalApiClient(),
     deviceUnlock: createDefaultDeviceUnlockBridge(),
     async share(input) {
       if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
