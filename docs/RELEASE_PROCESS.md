@@ -37,6 +37,7 @@ What it does:
 1. Bump both package versions to the next semver.
 2. Verify the frontend and backend checks you care about.
 3. Run `npm run release:android`.
+4. Fill out [docs/RELEASE_NOTES_TEMPLATE.md](docs/RELEASE_NOTES_TEMPLATE.md) for the shipped state.
 
 ## Notes
 

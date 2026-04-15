@@ -3254,6 +3254,8 @@ export function SettingsScreen({
   quickGuideSeen: boolean;
   requireUnlockOnOpen: boolean;
 }) {
+  const frontendConfig = getFrontendConfig();
+
   return (
     <main className="screen">
       <header className="content-header">
@@ -3263,6 +3265,26 @@ export function SettingsScreen({
       <section className="settings-card">
         <h2>Device</h2>
         <p>This MVP keeps captures and case files private to this device.</p>
+      </section>
+      <section className="settings-card settings-card--subtle">
+        <div className="section-heading">
+          <h2>Build</h2>
+          <span className="status-chip">{appVersion()}</span>
+        </div>
+        <dl className="detail-list">
+          <div>
+            <dt>Platform</dt>
+            <dd>{detectPlatform()}</dd>
+          </div>
+          <div>
+            <dt>Runtime mode</dt>
+            <dd>{frontendConfig.apiMode}</dd>
+          </div>
+          <div>
+            <dt>Backend</dt>
+            <dd>{frontendConfig.apiMode === "backend" ? frontendConfig.backendUrl : "Optional in local mode"}</dd>
+          </div>
+        </dl>
       </section>
       <section className="settings-card">
         <h2>Quickstart guide</h2>

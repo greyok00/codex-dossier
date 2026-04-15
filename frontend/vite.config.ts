@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import react from "@vitejs/plugin-react";
@@ -7,6 +8,7 @@ import { defineConfig, loadEnv } from "vite";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, resolve(__dirname, ".."), "");
+  const packageVersion = JSON.parse(readFileSync(resolve(__dirname, "package.json"), "utf8")).version as string;
   const appBase = env.VITE_APP_BASE || "/";
   const shellBuild = env.VITE_APP_SHELL_BUILD === "true";
   const apiProxyTarget =
@@ -19,6 +21,9 @@ export default defineConfig(({ mode }) => {
   return {
     envDir: "..",
     base: appBase,
+    define: {
+      "import.meta.env.VITE_APP_VERSION": JSON.stringify(env.VITE_APP_VERSION || packageVersion),
+    },
     plugins: [
       react(),
       tailwindcss(),

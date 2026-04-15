@@ -37,6 +37,8 @@ These items are complete enough to stop blocking `0.2` work right now.
 - README reflects the current UI and release line
 - [docs/ROADMAP.md](docs/ROADMAP.md) exists
 - [docs/MILESTONE_0_2_CHECKLIST.md](docs/MILESTONE_0_2_CHECKLIST.md) exists
+- [docs/WEB_QA_LOG_TEMPLATE.md](docs/WEB_QA_LOG_TEMPLATE.md) exists
+- [docs/ANDROID_SIGNED_RELEASE_PATH.md](docs/ANDROID_SIGNED_RELEASE_PATH.md) exists
 
 ## B. Blocked on real device
 
@@ -98,11 +100,23 @@ These can be advanced before or alongside real-device QA.
 - create a QA log template for real-device testing
 - create a release notes template tied to semver releases
 
+### Progress update
+
+- completed in repo:
+  - clearer web share and manual handoff fallback
+  - clearer local-mode failure wording across core screens
+  - signed Android release path doc
+  - web QA log template
+- still open:
+  - Android QA log template needs real device use
+  - release notes template needs to be used on the next release
+  - Android version support policy still needs to be written
+
 ## D. Suggested execution order
 
 1. Create and commit an Android QA log template
 2. Create and commit a release notes template
-3. Define the signed Android release path in docs
+3. Document the Android version support policy
 4. Run real-device QA on 2 phones
 5. Fix issues found in that QA
 6. Re-cut the next semver release after those fixes
