@@ -495,7 +495,7 @@ export function CaptureScreen({
       setElapsedMs(0);
       setStatus("Recording");
     } catch {
-      setErrorMessage("This device could not start audio capture.");
+      setErrorMessage("Microphone access could not start on this device. Check browser permissions and try again.");
       setStatus("Ready to capture");
     }
   }
@@ -540,7 +540,7 @@ export function CaptureScreen({
       setStatus("Capture saved");
       navigate(`/cases/${summary.incident_id}/capture-saved`);
     } catch {
-      setErrorMessage("This capture could not be saved.");
+      setErrorMessage("The recording was captured, but Dossier could not save it locally. Try again before leaving this screen.");
       setStatus("Ready to capture");
     }
   }
@@ -659,7 +659,7 @@ export function CaptureSavedScreen({
 
   if (captureQuery.isError || !captureQuery.data) {
     return (
-      <ScreenMessage title="Recording saved" body="This saved recording could not be loaded on this device." action={<LinkButton icon={ArrowLeft} to="/capture">Back to recording</LinkButton>} />
+      <ScreenMessage title="Recording saved" body="This saved recording could not be opened from local storage on this device." action={<LinkButton icon={ArrowLeft} to="/capture">Back to recording</LinkButton>} />
     );
   }
 
@@ -801,7 +801,7 @@ export function TranscriptScreen({
   }
 
   if (captureQuery.isError || !captureQuery.data) {
-    return <ScreenMessage title="Review transcript" body="The source recording could not be loaded for this case." action={<LinkButton icon={ArrowLeft} to="/capture">Back to recording</LinkButton>} />;
+    return <ScreenMessage title="Review transcript" body="The source recording could not be reopened from local storage for this case." action={<LinkButton icon={ArrowLeft} to="/capture">Back to recording</LinkButton>} />;
   }
 
   if (!transcriptQuery.data?.transcript) {
@@ -1055,7 +1055,7 @@ export function FactsScreen({
       setEditing(false);
     },
     onError: () => {
-      setConfirmError("Facts could not be confirmed right now.");
+      setConfirmError("The case details were not saved. Review any edits and try again.");
     },
   });
 
@@ -1064,7 +1064,7 @@ export function FactsScreen({
   }
 
   if (captureQuery.isError || !captureQuery.data || transcriptQuery.isError) {
-    return <ScreenMessage title="Check case details" body="The case details could not be loaded on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
+    return <ScreenMessage title="Check case details" body="The saved case details could not be opened from local storage on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
   }
 
   if (!transcriptQuery.data?.transcript) {
@@ -1079,7 +1079,7 @@ export function FactsScreen({
     return (
       <ScreenMessage
         title="Check case details"
-        body="Dossier could not prepare the case details from this transcript."
+        body="Dossier could not turn this transcript into case details yet."
         action={<PrimaryButton disabled={extractMutation.isPending} icon={RefreshCw} onClick={() => { void extractMutation.mutate(); }}>{extractMutation.isPending ? "Checking details" : "Try again"}</PrimaryButton>}
         footer={extractMutation.error ? <InlineError message={resolveExtractError(extractMutation.error)} /> : null}
       />
@@ -1369,7 +1369,7 @@ export function CasesScreen({
           </section>
         </>
       )}
-      {deleteMutation.error ? <InlineError message="Case delete did not complete." /> : null}
+      {deleteMutation.error ? <InlineError message="Case delete did not finish. Try again." /> : null}
     </main>
   );
 }
@@ -1558,7 +1558,7 @@ export function CaseRoutesScreen({
   }
 
   if (captureQuery.isError || !captureQuery.data || factSetQuery.isError) {
-    return <ScreenMessage title="Choose where to report" body="The case details could not be loaded on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
+    return <ScreenMessage title="Choose where to report" body="The saved case details could not be opened from local storage on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
   }
 
   if (!factSetQuery.data?.fact_set) {
@@ -1979,7 +1979,7 @@ export function DraftReportScreen({
     return (
       <ScreenMessage
         title="Write report"
-        body={buildDraftMutation.error ? "Dossier could not build the report draft. Retry to continue." : "Creating your report from the saved facts and selected destination."}
+        body={buildDraftMutation.error ? "Dossier could not build the brief from the saved facts and selected destination. Retry to continue." : "Creating your report from the saved facts and selected destination."}
         action={buildDraftMutation.error ? <PrimaryButton icon={RefreshCw} onClick={() => void buildDraftMutation.mutate()}>Retry draft</PrimaryButton> : null}
         footer={buildDraftMutation.error ? <InlineError message={resolveDraftError(buildDraftMutation.error)} /> : null}
       />
@@ -2168,7 +2168,7 @@ export function DraftReportScreen({
           {approveMutation.isPending ? "Approving brief" : "Approve brief"}
         </PrimaryButton>
         <LinkButton icon={ArrowLeft} to={`/cases/${incidentId}/routes`}>Back to destinations</LinkButton>
-        {approveMutation.error ? <InlineError message="Draft approval did not complete." /> : null}
+        {approveMutation.error ? <InlineError message="Brief approval did not finish. Try again." /> : null}
       </div>
     </main>
   );
@@ -2196,7 +2196,7 @@ export function SendHandoffScreen({
   }
 
   if (!caseSummaryQuery.data) {
-    return <ScreenMessage title="Send report" body="This case could not be loaded on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
+    return <ScreenMessage title="Send report" body="This case could not be opened from local storage on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
   }
 
   if (!selectedRoute) {
@@ -2696,7 +2696,7 @@ export function ProofActionScreen({ db }: { db: DossierDatabase }) {
   }
 
   if (!caseSummaryQuery.data) {
-    return <ScreenMessage title="Save confirmation" body="This case could not be loaded on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
+    return <ScreenMessage title="Save confirmation" body="This case could not be opened from local storage on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
   }
 
   const selectedRoute = caseSummaryQuery.data.routes.find((route) => route.selected) ?? null;
@@ -2836,7 +2836,7 @@ export function ProofActionScreen({ db }: { db: DossierDatabase }) {
       <div className="button-row">
         <PrimaryButton disabled={saveMutation.isPending} icon={Shield} onClick={() => { void saveMutation.mutate(); }}>{saveMutation.isPending ? "Saving receipt" : "Save receipt"}</PrimaryButton>
         <LinkButton icon={ArrowLeft} to={`/cases/${incidentId}/send`}>Back to send report</LinkButton>
-        {saveMutation.error ? <InlineError message="Proof could not be saved right now." /> : null}
+        {saveMutation.error ? <InlineError message="The filing receipt was not saved. Try again." /> : null}
       </div>
     </main>
   );
@@ -2911,7 +2911,7 @@ export function ExportCaseFileScreen({
   }
 
   if (!caseSummaryQuery.data) {
-    return <ScreenMessage title="Download case packet" body="This case could not be loaded on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
+    return <ScreenMessage title="Download case packet" body="This case could not be opened from local storage on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
   }
 
   return (
@@ -2964,7 +2964,7 @@ export function CaseFileScreen({
   }
 
   if (!caseSummaryQuery.data) {
-    return <ScreenMessage title="Dossier" body="This case could not be loaded on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
+    return <ScreenMessage title="Dossier" body="This case could not be opened from local storage on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
   }
 
   const summary = caseSummaryQuery.data;

@@ -255,25 +255,25 @@ export function resolveDeviceUnlockError(error: unknown) {
 }
 
 export function resolveTranscribeError(error: unknown) {
-  return resolveBackendActionError(error, "Transcript creation did not complete. Try again.");
+  return resolveBackendActionError(error, "Transcript creation stopped before the case was updated. Try again.");
 }
 
 export function resolveExtractError(error: unknown) {
-  return resolveBackendActionError(error, "Details could not be prepared right now.");
+  return resolveBackendActionError(error, "Case details could not be prepared from the saved transcript yet. Try again.");
 }
 
 export function resolveRouteRecommendationError(error: unknown) {
-  return resolveBackendActionError(error, "Destinations could not be prepared right now.");
+  return resolveBackendActionError(error, "Destinations could not be prepared from the saved case details yet. Try again.");
 }
 
 export function resolveDraftError(error: unknown) {
-  return resolveBackendActionError(error, "Draft report could not be prepared right now.");
+  return resolveBackendActionError(error, "The brief could not be prepared from the saved facts and destination yet. Try again.");
 }
 
 export function resolveBackendActionError(error: unknown, fallbackMessage: string) {
   if (error instanceof FrontendRuntimeError) {
     if (error.code === "backend_unreachable") {
-      return "The backend is offline. Saved local case data is still available. Retry after the backend restarts.";
+      return "The backend is offline. Saved local case data is still available in the web app. Retry after the backend restarts.";
     }
 
     return error.message;

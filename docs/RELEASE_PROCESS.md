@@ -42,3 +42,4 @@ What it does:
 
 - The current Android release flow attaches the debug APK because that is the stable local artifact already proven in this repo.
 - When signed release APKs are ready, the asset name can change, but the release tag should stay semver.
+- The intended signed Android path is documented in [docs/ANDROID_SIGNED_RELEASE_PATH.md](docs/ANDROID_SIGNED_RELEASE_PATH.md).
