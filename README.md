@@ -19,9 +19,9 @@ Product line:
 ## Current Release Assets
 
 - Current versioned release:
-  - `https://github.com/greyok00/codex-dossier/releases/tag/v0.1.2`
+  - `https://github.com/greyok00/codex-dossier/releases/tag/v0.1.3`
 - Android asset attached to the release:
-  - `dossier-v0.1.2-android-debug.apk`
+  - `dossier-v0.1.3-android-debug.apk`
 - iOS/macOS-side artifact available from this machine:
   - an `xtool` shell source bundle for `ios-xtool-shell/`
   - this is not a compiled `.ipa` or `.app`
@@ -143,7 +143,7 @@ npm run db:test:down
 
 ## Roadmap To 1.0
 
-Current line: `0.1.2`
+Current line: `0.1.3`
 
 - `0.1.x` Stabilization
   - validate the full case flow on real Android devices

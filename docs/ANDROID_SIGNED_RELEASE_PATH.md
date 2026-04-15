@@ -10,8 +10,8 @@ This document defines the intended signed Android release path without requiring
 
 Current public example:
 
-- `v0.1.2`
-- asset: `dossier-v0.1.2-android-debug.apk`
+- `v0.1.3`
+- asset: `dossier-v0.1.3-android-debug.apk`
 
 ## Goal
 

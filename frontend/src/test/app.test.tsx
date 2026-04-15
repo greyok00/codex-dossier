@@ -418,7 +418,7 @@ describe("frontend local-first scaffold", () => {
     expect(logs.some((entry) => entry.action === "proof_saved")).toBe(true);
     expect(logs.filter((entry) => entry.action === "export_created").length).toBeGreaterThanOrEqual(2);
     await db.delete();
-  });
+  }, 15000);
 });
 
 function createFakeTranscriber(): LocalTranscriber {

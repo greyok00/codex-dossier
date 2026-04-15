@@ -232,12 +232,74 @@ export function PrepareLocalAiScreen({
 }) {
   const frontendConfig = getFrontendConfig();
   const usesBackendApi = frontendConfig.apiMode === "backend";
+  const platform = detectPlatform();
+  const usesNativeShell = platform !== "web";
+  const shouldShowWritingSetup = !usesBackendApi && !usesNativeShell;
   const [progress, setProgress] = useState<LocalAiProgressEvent | null>(null);
   const [speechModelProgress, setSpeechModelProgress] = useState<LocalAiProgressEvent | null>(null);
   const [writingModelProgress, setWritingModelProgress] = useState<LocalAiProgressEvent | null>(null);
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const autoStartedRef = useRef(false);
+  const progressTimerRef = useRef<number | null>(null);
+  const pendingProgressRef = useRef<LocalAiProgressEvent | null>(null);
+  const lastCommittedProgressRef = useRef<LocalAiProgressEvent | null>(null);
+  const lastProgressCommitAtRef = useRef(0);
+
+  function applyProgressState(next: LocalAiProgressEvent) {
+    lastCommittedProgressRef.current = next;
+    lastProgressCommitAtRef.current = Date.now();
+    setProgress(next);
+    const modelName = (next.model ?? "").toLowerCase();
+    if (modelName.includes("whisper")) {
+      setSpeechModelProgress(next);
+      return;
+    }
+    if (modelName.includes("qwen") || modelName.includes("draft")) {
+      setWritingModelProgress(next);
+    }
+  }
+
+  function flushPendingProgress() {
+    if (progressTimerRef.current !== null) {
+      window.clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    if (pendingProgressRef.current) {
+      const next = pendingProgressRef.current;
+      pendingProgressRef.current = null;
+      applyProgressState(next);
+    }
+  }
+
+  function scheduleProgressUpdate(next: LocalAiProgressEvent) {
+    const previous = lastCommittedProgressRef.current;
+    const now = Date.now();
+    const immediate =
+      next.stage === "ready" ||
+      !previous ||
+      previous.stage !== next.stage ||
+      previous.model !== next.model ||
+      previous.file !== next.file ||
+      now - lastProgressCommitAtRef.current >= 140;
+
+    if (immediate) {
+      pendingProgressRef.current = null;
+      flushPendingProgress();
+      applyProgressState(next);
+      return;
+    }
+
+    pendingProgressRef.current = next;
+    if (progressTimerRef.current !== null) {
+      return;
+    }
+
+    const waitMs = Math.max(0, 140 - (now - lastProgressCommitAtRef.current));
+    progressTimerRef.current = window.setTimeout(() => {
+      flushPendingProgress();
+    }, waitMs);
+  }
 
   async function handlePrepare() {
     setPending(true);
@@ -264,29 +326,25 @@ export function PrepareLocalAiScreen({
         file: null,
         model: model ?? "Xenova/whisper-tiny.en",
       });
-      setWritingModelProgress({
-        stage: "load",
-        label: "Preparing local writing model.",
-        progress: 0,
-        loaded_bytes: null,
-        total_bytes: null,
-        file: null,
-        model: "Qwen/Qwen2.5-0.5B-Instruct",
-      });
+      setWritingModelProgress(
+        shouldShowWritingSetup
+          ? {
+              stage: "load",
+              label: "Preparing local writing model.",
+              progress: 0,
+              loaded_bytes: null,
+              total_bytes: null,
+              file: null,
+              model: "Qwen/Qwen2.5-0.5B-Instruct",
+            }
+          : null,
+      );
     }
 
     try {
       const result = await services.api.prepareLocalAi({
         on_progress: (next) => {
-          setProgress(next);
-          const modelName = (next.model ?? "").toLowerCase();
-          if (modelName.includes("whisper")) {
-            setSpeechModelProgress(next);
-            return;
-          }
-          if (modelName.includes("qwen") || modelName.includes("draft")) {
-            setWritingModelProgress(next);
-          }
+          scheduleProgressUpdate(next);
         },
       });
       await onPrepared({
@@ -308,6 +366,30 @@ export function PrepareLocalAiScreen({
     void handlePrepare();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current !== null) {
+        window.clearTimeout(progressTimerRef.current);
+      }
+    };
+  }, []);
+
+  const localSetupDetail = usesNativeShell
+    ? "First setup loads the offline speech tools bundled into this app, then keeps them cached on this device."
+    : "First setup downloads the offline speech and writing models once, then keeps them cached on this device.";
+
+  const localAiGuideItems = usesNativeShell
+    ? [
+        "Speech model: turns your audio capture into transcript text on-device.",
+        "Drafts start with standard local report writing in this packaged build.",
+        "No cloud calls for AI in this mode. Bundled tools stay cached for offline reuse.",
+      ]
+    : [
+        "Speech model: turns your audio capture into transcript text on-device.",
+        "Writing model: improves draft complaint wording from your saved facts.",
+        "No cloud calls for AI in this mode. Models stay cached for offline reuse.",
+      ];
+
   return (
     <FullScreenShell
       title={usesBackendApi ? "Connect Dossier" : "Get Dossier ready"}
@@ -319,7 +401,7 @@ export function PrepareLocalAiScreen({
       detail={
         usesBackendApi
           ? `Backend mode uses ${frontendConfig.backendUrl} for AI tasks while the frontend stays mounted independently.`
-          : "First setup downloads the offline speech and writing models once, then keeps them cached on this device."
+          : localSetupDetail
       }
       actionSlot={
         <>
@@ -331,7 +413,7 @@ export function PrepareLocalAiScreen({
               emptyMessage="Speech model is waiting to start."
             />
           )}
-          {usesBackendApi ? null : (
+          {usesBackendApi || !shouldShowWritingSetup ? null : (
             <ProgressPanel
               progress={writingModelProgress}
               title="Writing model download"
@@ -348,9 +430,9 @@ export function PrepareLocalAiScreen({
               </ul>
             ) : (
               <ul className="inline-list">
-                <li>Speech model: turns your audio capture into transcript text on-device.</li>
-                <li>Writing model: improves draft complaint wording from your saved facts.</li>
-                <li>No cloud calls for AI in this mode. Models stay cached for offline reuse.</li>
+                {localAiGuideItems.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
             )}
           </section>

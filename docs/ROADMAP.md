@@ -69,7 +69,7 @@ Required characteristics:
 
 ## Current position
 
-Current release line: `0.1.2`
+Current release line: `0.1.3`
 
 Practical assessment:
 

@@ -1,3 +1,5 @@
+import { Capacitor } from "@capacitor/core";
+
 import { buildDeterministicRouteRecommendations } from "./local-routing";
 import type { FactTimelineItemRecord, RouteGroup, RouteTrustLevel } from "./db";
 import type {
@@ -263,11 +265,19 @@ export function createLocalApiClient(options: {
 function createQwenDraftEnhancer(): LocalDraftEnhancer {
   let generatorPromise: Promise<(prompt: string, options: Record<string, unknown>) => Promise<unknown>> | null = null;
   const modelId = "Qwen/Qwen2.5-0.5B-Instruct";
+  const missingBundledModelWarning = "Enhanced local writing is not bundled in this app build. Using standard local draft mode.";
 
   return {
     async prepare(input = {}) {
       const available = await isBundledModelAvailable(modelId);
       if (!available) {
+        if (isCapacitorNativePlatform()) {
+          return {
+            model: "template-draft-v1",
+            warnings: [missingBundledModelWarning],
+          };
+        }
+
         input.onProgress?.({
           stage: "load",
           label: "Downloading local writing model for better report drafts.",
@@ -291,6 +301,15 @@ function createQwenDraftEnhancer(): LocalDraftEnhancer {
 
     async improveDraft(input) {
       const available = await isBundledModelAvailable(modelId);
+      if (!available && isCapacitorNativePlatform()) {
+        return {
+          subject: input.draft.subject,
+          body: input.draft.body,
+          model: "template-draft-v1",
+          warnings: [missingBundledModelWarning],
+        };
+      }
+
       if (!available) {
         // Fall through to loader with remote enabled so first-run downloads are allowed.
       }
@@ -836,6 +855,10 @@ async function isBundledModelAvailable(modelId: string) {
   }
 }
 
+function isCapacitorNativePlatform() {
+  return typeof window !== "undefined" && Capacitor.isNativePlatform();
+}
+
 async function loadWhisperPipeline(
   existing: Promise<(audio: Float32Array, options: Record<string, unknown>) => Promise<unknown>> | null,
   onProgress: ((event: LocalAiProgressEvent) => void) | undefined,
@@ -862,7 +885,7 @@ async function loadWhisperPipeline(
     }
     const instance = await transformers.pipeline("automatic-speech-recognition", modelId, {
       device: "wasm",
-      dtype: "fp32",
+      dtype: isCapacitorNativePlatform() ? "fp32" : "q8",
       progress_callback(progress) {
         const next = mapProgressInfo(progress as Record<string, unknown>, modelId);
         if (next) {
