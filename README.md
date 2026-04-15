@@ -159,6 +159,7 @@ Detailed milestone plan:
 
 - [docs/ROADMAP.md](docs/ROADMAP.md)
 - [docs/MILESTONE_0_2_CHECKLIST.md](docs/MILESTONE_0_2_CHECKLIST.md)
+- [docs/MILESTONE_0_2_WORK_QUEUE.md](docs/MILESTONE_0_2_WORK_QUEUE.md)
 
 ## Repository Layout
 
@@ -180,6 +181,7 @@ Detailed milestone plan:
 - [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)
 - [docs/ROADMAP.md](docs/ROADMAP.md)
 - [docs/MILESTONE_0_2_CHECKLIST.md](docs/MILESTONE_0_2_CHECKLIST.md)
+- [docs/MILESTONE_0_2_WORK_QUEUE.md](docs/MILESTONE_0_2_WORK_QUEUE.md)
 
 ## Current Constraints
 

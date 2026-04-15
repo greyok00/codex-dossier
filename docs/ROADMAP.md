@@ -29,6 +29,7 @@ Exit criteria:
 Working checklist:
 
 - [docs/MILESTONE_0_2_CHECKLIST.md](docs/MILESTONE_0_2_CHECKLIST.md)
+- [docs/MILESTONE_0_2_WORK_QUEUE.md](docs/MILESTONE_0_2_WORK_QUEUE.md)
 
 ## 0.5 Production Beta
 
