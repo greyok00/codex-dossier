@@ -13,6 +13,7 @@ That works because the frontend already defaults to local mode:
 - The app ships with bundled web assets inside the native shell
 - The Android wrapper is already in `frontend/android`
 - The generated project includes a Gradle wrapper, so Android Studio is not required
+- This repo now supports a repo-local Android toolchain under `frontend/.android-sdk`, `frontend/.jdks`, and `frontend/.gradle`
 
 ## What You Need On This Machine
 
@@ -24,25 +25,23 @@ Required:
 - Android build tools
 - An Android platform SDK
 
-This machine already has:
+This repo can provide those locally:
 
-- `java`
-- `adb`
-
-This machine is still missing:
-
-- `sdkmanager`
-- a configured Android SDK install
+- local JDK 21 in `frontend/.jdks/jdk-21.0.10+7`
+- local Android SDK in `frontend/.android-sdk`
+- local Gradle cache in `frontend/.gradle`
 
 ## Command-Line Build Path
 
-Once the Android SDK command-line tools are installed and `ANDROID_HOME` or `ANDROID_SDK_ROOT` is set, build commands are:
+With the local toolchain in place, build commands are:
 
 ```bash
 cd frontend
 npm install
 npm run android:build:debug
 ```
+
+The build scripts automatically prefer the repo-local JDK, Android SDK, and Gradle cache if they exist.
 
 Debug APK output:
 
@@ -83,4 +82,5 @@ That means:
 ## Current Constraints
 
 - Mobile WebView performance for local AI may still be heavier than desktop Chromium
-- The Android shell is real and ready, but this machine still needs Android SDK command-line tools before it can produce an APK
+- The debug APK is large because the current web bundle includes ONNX and model runtime assets
+- iOS native packaging is still separate work; for iOS we will evaluate `xtool` independently from this Android path

@@ -6,3 +6,6 @@ dist/
 .env.local
 frontend/.env
 frontend/.env.local
+frontend/.android-sdk/
+frontend/.gradle/
+frontend/.jdks/
