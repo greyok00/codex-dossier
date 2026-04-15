@@ -135,6 +135,31 @@ npm run test:integration:pg
 npm run db:test:down
 ```
 
+## Roadmap To 1.0
+
+Current line: `0.1.2`
+
+- `0.1.x` Stabilization
+  - validate the full case flow on real Android devices
+  - remove crashers, broken navigation, and obvious data-loss risks
+  - keep semver releases and docs consistent
+- `0.2` Mobile Beta
+  - harden Android permissions, offline resume, share/export, and on-device performance
+  - make the app solid enough for real user testing
+- `0.5` Production Beta
+  - improve route quality, report quality, evidence packaging, and failure recovery
+  - finish the major UX and copy pass
+- `0.9` Release Candidate
+  - stabilize Android release packaging and complete broader device QA
+  - finish privacy/security review and resolve remaining launch blockers
+- `1.0`
+  - ship a stable, repeatable Android product with disciplined releases and finished user-facing flows
+
+Detailed milestone plan:
+
+- [docs/ROADMAP.md](docs/ROADMAP.md)
+- [docs/MILESTONE_0_2_CHECKLIST.md](docs/MILESTONE_0_2_CHECKLIST.md)
+
 ## Repository Layout
 
 - `frontend/` React client, local AI flow, UI, local storage
@@ -153,6 +178,8 @@ npm run db:test:down
 - [docs/BACKEND_IMPLEMENTATION_PLAN.md](docs/BACKEND_IMPLEMENTATION_PLAN.md)
 - [docs/ROUTING_REGISTRY_MIGRATION_AND_SEED_PLAN.md](docs/ROUTING_REGISTRY_MIGRATION_AND_SEED_PLAN.md)
 - [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)
+- [docs/ROADMAP.md](docs/ROADMAP.md)
+- [docs/MILESTONE_0_2_CHECKLIST.md](docs/MILESTONE_0_2_CHECKLIST.md)
 
 ## Current Constraints
 
