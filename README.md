@@ -1,52 +1,59 @@
 # codex-dossier
 
-Dossier is a local-first incident capture and reporting app currently in active development.
+![Dossier app preview](docs/media/dossier-readme-preview.png)
 
-Current build target is a local development frontend and backend. Final product target is a phone app (Android/iOS). The web app is the development shell, not the final distribution form.
+Dossier is a local-first incident capture and reporting app.
 
 Product line:
 
 `Capture once. Build the case. Send it with proof.`
 
-## Project status
+## What It Does
 
-This project is a work in progress.
+- Records an incident on-device
+- Preserves the original recording with a hash and custody log
+- Builds a transcript and structured case details
+- Recommends reporting destinations with trust/source labels
+- Drafts the report, tracks send actions, saves proof, and exports a case packet
 
-- Core product spec and architecture are documented.
-- Backend MVP endpoints are implemented and tested.
-- Frontend local-first flow is implemented for MVP iteration.
-- UI, model packaging, and mobile release steps are still in progress.
+## Quick Walkthrough
 
-For detailed status and mobile target notes, see [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+1. Open `Record` and save the incident recording.
+2. Review the transcript and confirm the case details.
+3. Open `Choose where to report` and pick a destination.
+4. Review the generated report draft.
+5. Send or hand off the report, save confirmation details, and export the case packet.
 
-## What Dossier does
+## Current Stack
 
-- Captures incident evidence (voice-first in current MVP)
-- Preserves original evidence with local hash + custody log
-- Builds transcript and structured facts
-- Recommends reporting destinations with source/trust fields
-- Drafts reports and supports send/handoff/proof/export flows
+- Frontend: React + TypeScript + Vite + PWA + Dexie
+- Local AI: Transformers.js + ONNX Runtime Web
+- Backend: Node.js + TypeScript + Fastify + PostgreSQL
+- UI: glass component layer with a detached frontend/backend runtime shell
 
-## Architecture (current)
+## Runtime Model
 
-- Frontend: React + TypeScript + Vite + PWA + Dexie (local-first data)
-- Local AI mode: Transformers.js + ONNX Runtime Web + deterministic extraction/routing logic
-- Backend: Node.js + TypeScript + Fastify + PostgreSQL (registry/auth/integration surface)
+The frontend is intentionally detached from the backend process.
 
-## Important implementation note
+- Local case data stays usable even if the backend restarts.
+- The frontend shows backend health in-app.
+- Shared runtime config lives at the repo root and is consumed by both services.
 
-Large local model assets can exceed standard GitHub file size limits. Repository commits should keep binary model files within git hosting limits. Full model packaging is intended for mobile app bundling later (APK/IPA assets).
+More detail:
 
-## Repository layout
+- [docs/DETACHED_FRONTEND_BACKEND_ARCHITECTURE.md](docs/DETACHED_FRONTEND_BACKEND_ARCHITECTURE.md)
+- [docs/FRONTEND_UI_REBUILD_FEATURE_LIST.md](docs/FRONTEND_UI_REBUILD_FEATURE_LIST.md)
 
-- `frontend/` React PWA client, local AI flow, local storage, UI
-- `src/` backend runtime and API routes
-- `test/` backend integration tests
-- `docs/` product, schema, API, and implementation specs
-- `tools/` import and utility tooling
-- `generated/` generated registry/import artifacts
+## Run It
 
-## Quick start (frontend)
+Backend:
+
+```bash
+npm install
+npm run backend:dev
+```
+
+Frontend:
 
 ```bash
 cd frontend
@@ -54,20 +61,26 @@ npm install
 npm run dev
 ```
 
-Local checks:
+Default dev URLs:
+
+- Frontend: `http://127.0.0.1:5173`
+- Backend health: `http://127.0.0.1:3100/v1/health`
+
+## Checks
+
+Frontend:
 
 ```bash
-cd frontend
-npm run check
-npm run test
-npm run build
+npm --prefix frontend run check
+npm --prefix frontend run test -- --run
+npm --prefix frontend run build
 ```
 
-## Quick start (backend)
+Backend:
 
 ```bash
-npm install
-npm run dev
+npm run backend:check
+npm run backend:build
 ```
 
 Postgres integration tests:
@@ -78,7 +91,16 @@ npm run test:integration:pg
 npm run db:test:down
 ```
 
-## Documentation index
+## Repository Layout
+
+- `frontend/` React client, local AI flow, UI, local storage
+- `src/` backend runtime and API routes
+- `test/` backend integration tests
+- `docs/` product, schema, API, and architecture docs
+- `tools/` import and utility tooling
+- `generated/` generated registry/import artifacts
+
+## Documentation
 
 - [docs/TECH_SPEC.md](docs/TECH_SPEC.md)
 - [docs/OPENAPI.json](docs/OPENAPI.json)
@@ -86,9 +108,10 @@ npm run db:test:down
 - [docs/FRONTEND_TYPE_MAP.md](docs/FRONTEND_TYPE_MAP.md)
 - [docs/BACKEND_IMPLEMENTATION_PLAN.md](docs/BACKEND_IMPLEMENTATION_PLAN.md)
 - [docs/ROUTING_REGISTRY_MIGRATION_AND_SEED_PLAN.md](docs/ROUTING_REGISTRY_MIGRATION_AND_SEED_PLAN.md)
+- [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)
 
-## Current direction
+## Current Constraints
 
-- Keep local-first behavior for evidence and case data
-- Keep UX plain, procedural, and mobile-first
-- Ship as a phone app when product and packaging are complete
+- Large local AI assets are still the biggest frontend payload.
+- This repository does not yet contain a completed native Android/iOS packaging pipeline.
+- The web app is the active development and validation shell.

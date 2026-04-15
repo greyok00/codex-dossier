@@ -16,11 +16,16 @@ import {
 import { createDefaultAppServices, type AppServices } from "@/lib/runtime";
 
 import { resolveDeviceUnlockError } from "./helpers";
+import { ReadmePreview } from "./ReadmePreview";
 import { AuthenticatedShell, PrepareLocalAiScreen, UnlockScreen } from "./shell";
 import type { AppProps, BootstrapViewState } from "./types";
 import { FullScreenShell } from "./ui";
 
 export function App({ services = createDefaultAppServices() }: AppProps) {
+  if (typeof window !== "undefined" && window.location.pathname === "/preview/readme") {
+    return <ReadmePreview />;
+  }
+
   const [bootstrap, setBootstrap] = useState<BootstrapViewState>({
     ready: false,
     lockHash: null,
