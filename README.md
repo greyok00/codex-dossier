@@ -44,6 +44,7 @@ More detail:
 - [docs/DETACHED_FRONTEND_BACKEND_ARCHITECTURE.md](docs/DETACHED_FRONTEND_BACKEND_ARCHITECTURE.md)
 - [docs/FRONTEND_UI_REBUILD_FEATURE_LIST.md](docs/FRONTEND_UI_REBUILD_FEATURE_LIST.md)
 - [docs/CAPACITOR_MOBILE_SHELL.md](docs/CAPACITOR_MOBILE_SHELL.md)
+- [docs/ANDROID_LOCAL_APK_BUILD.md](docs/ANDROID_LOCAL_APK_BUILD.md)
 
 ## Run It
 
@@ -60,6 +61,13 @@ Frontend:
 cd frontend
 npm install
 npm run dev
+```
+
+Android local APK path:
+
+```bash
+cd frontend
+npm run android:build:debug
 ```
 
 Default dev URLs:
