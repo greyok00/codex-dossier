@@ -60,7 +60,6 @@ import {
   type RouteRecommendationRecord,
   type SubmissionProofRecord,
 } from "@/lib/db";
-import { buildCasePdf, buildCaseZip } from "@/lib/export";
 import {
   appVersion,
   detectPlatform,
@@ -116,6 +115,10 @@ import {
 } from "./ui";
 
 const APP_SUMMARY = "Dossier turns a recording into a documented case you can review, report, and export.";
+
+async function loadCaseExportTools() {
+  return import("@/lib/export");
+}
 
 function buildChipClassName(...tokens: Array<string | false | null | undefined>) {
   return tokens.filter(Boolean).join(" ");
@@ -550,13 +553,25 @@ export function CaptureScreen({
       <header className="capture-header">
         <div>
           <h1 className="screen-title">Start a case</h1>
-          <p className="screen-body">Create a new dossier from a single verified recording.</p>
+          <p className="screen-body">Create a new dossier from one verified recording, then build the case from there.</p>
         </div>
         <div className="capture-status-group">
           <span className="status-chip">{status}</span>
           <span className="status-chip">{locationState.label}</span>
         </div>
       </header>
+
+      <section className="settings-card settings-card--subtle">
+        <div className="section-heading">
+          <h2>Capture preflight</h2>
+          <span className="status-chip">{locationState.lat === null ? "Partial context" : "Context ready"}</span>
+        </div>
+        <ul className="inline-list">
+          <li>Microphone permission is required to start.</li>
+          <li>Location is optional but will be saved with the case when available.</li>
+          <li>The original recording stays local with a verified hash and activity log.</li>
+        </ul>
+      </section>
 
       <section className="capture-stage">
         <p className="capture-timer">{formatDuration(elapsedMs)}</p>
@@ -1586,9 +1601,13 @@ export function CaseRoutesScreen({
     <main className="screen">
       <header className="content-header">
         <h1 className="screen-title">Choose where to report</h1>
-        <p className="screen-body">Pick a single filing path for this dossier. That route becomes the official destination for the report, proof, and export packet.</p>
+        <p className="screen-body">Pick one active destination for this dossier. That route drives the brief, filing receipt, and export packet.</p>
       </header>
       <section className="settings-card settings-card--subtle">
+        <div className="section-heading">
+          <h2>How this works</h2>
+          <span className="status-chip">{selectedRoute ? "One route active" : "No route active yet"}</span>
+        </div>
         <p>Use <strong>Write report</strong> to make any destination current and open the brief immediately.</p>
         <p>Use <strong>Make current</strong> only when you want to switch the active destination without leaving this screen.</p>
       </section>
@@ -2211,11 +2230,14 @@ export function SendHandoffScreen({
     <main className="screen">
       <header className="content-header">
         <h1 className="screen-title">Send report</h1>
-        <p className="screen-body">Open the official form, email, call, share, or export the report packet.</p>
+        <p className="screen-body">Choose the handoff path that fits this destination, then return here to save the filing receipt.</p>
       </header>
 
       <section className="settings-card">
-        <h2>Before you send</h2>
+        <div className="section-heading">
+          <h2>Before you send</h2>
+          <span className="status-chip">{selectedRoute.destination_name_snapshot}</span>
+        </div>
         <ul className="inline-list">
           <li>Business or agency name confirmed</li>
           <li>Date and amount confirmed</li>
@@ -2224,7 +2246,7 @@ export function SendHandoffScreen({
         </ul>
       </section>
 
-      <section className="settings-card">
+      <section className="settings-card settings-card--subtle">
         <dl className="detail-list">
           <div>
             <dt>Selected option</dt>
@@ -2239,7 +2261,7 @@ export function SendHandoffScreen({
             <dd>{selectedRoute.trust_level}</dd>
           </div>
         </dl>
-        <InlineNote message="Official sites open outside Dossier. This case stays saved on this device so you can return and save proof after you finish." />
+        <InlineNote message="Official sites open outside Dossier. The case stays saved locally so you can come back and record what happened after the handoff." />
       </section>
 
       <SendActionPanel approvedDraft={{ subject: approvedDraft.subject, body: approvedDraft.body }} db={db} incidentId={incidentId} selectedRoute={selectedRoute} services={services} />
@@ -2317,6 +2339,7 @@ export function SendActionPanel({
     }
 
     if (format === "pdf") {
+      const { buildCasePdf } = await loadCaseExportTools();
       const pdfBytes = await buildCasePdf(summary);
       const pdfBuffer = copyBuffer(pdfBytes);
       await createExportEvidence(db, {
@@ -2334,6 +2357,7 @@ export function SendActionPanel({
       };
     }
 
+    const { buildCaseZip } = await loadCaseExportTools();
     const zipBytes = await buildCaseZip(summary);
     const zipBuffer = copyBuffer(zipBytes);
     await createExportEvidence(db, {
@@ -2736,7 +2760,7 @@ export function ProofActionScreen({ db }: { db: DossierDatabase }) {
     <main className="screen">
       <header className="content-header">
         <h1 className="screen-title">Save confirmation</h1>
-        <p className="screen-body">Capture the filing receipt for this dossier so the submission trail looks complete, preserved, and defensible.</p>
+        <p className="screen-body">Save what happened after the handoff so the dossier keeps a clear filing trail, even if no formal receipt was returned.</p>
       </header>
 
       <section className="receipt-card receipt-card--ledger">
@@ -2817,6 +2841,7 @@ export function ProofActionScreen({ db }: { db: DossierDatabase }) {
           <h2>Receipt quality</h2>
           <span className="status-chip">{confirmationNumber.trim() ? "Traceable" : "Incomplete"}</span>
         </div>
+        <p>If no confirmation number or reference link was returned, save the method and a short note anyway. That still makes the case history more useful later.</p>
         <ul className="summary-checklist">
           <li className={buildChipClassName("summary-checklist__item", method !== "web_form" && "summary-checklist__item--done")}>
             <span className="summary-checklist__icon">{method !== "web_form" ? <CheckCircle2 aria-hidden="true" /> : <Square aria-hidden="true" />}</span>
@@ -2867,6 +2892,7 @@ export function ExportCaseFileScreen({
     }
 
     if (format === "pdf") {
+      const { buildCasePdf } = await loadCaseExportTools();
       const bytes = await buildCasePdf(summary);
       const pdfBuffer = copyBuffer(bytes);
       await createExportEvidence(db, {
@@ -2883,6 +2909,7 @@ export function ExportCaseFileScreen({
       });
       setNote("PDF packet created on this device.");
     } else {
+      const { buildCaseZip } = await loadCaseExportTools();
       const bytes = await buildCaseZip(summary);
       const zipBuffer = copyBuffer(bytes);
       await createExportEvidence(db, {

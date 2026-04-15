@@ -39,6 +39,10 @@ These items are complete enough to stop blocking `0.2` work right now.
 - [docs/MILESTONE_0_2_CHECKLIST.md](docs/MILESTONE_0_2_CHECKLIST.md) exists
 - [docs/WEB_QA_LOG_TEMPLATE.md](docs/WEB_QA_LOG_TEMPLATE.md) exists
 - [docs/ANDROID_SIGNED_RELEASE_PATH.md](docs/ANDROID_SIGNED_RELEASE_PATH.md) exists
+- [docs/SUPPORTED_TARGET_MATRIX.md](docs/SUPPORTED_TARGET_MATRIX.md) exists
+- [docs/PERFORMANCE_REDUCTION_PLAN.md](docs/PERFORMANCE_REDUCTION_PLAN.md) exists
+- [docs/ANDROID_QA_LOG_TEMPLATE.md](docs/ANDROID_QA_LOG_TEMPLATE.md) exists
+- [docs/RELEASE_NOTES_TEMPLATE.md](docs/RELEASE_NOTES_TEMPLATE.md) exists
 
 ## B. Blocked on real device
 
@@ -107,19 +111,24 @@ These can be advanced before or alongside real-device QA.
   - clearer local-mode failure wording across core screens
   - signed Android release path doc
   - web QA log template
+  - Android QA log template
+  - release notes template
+  - supported target matrix
+  - performance reduction plan
+  - version/build visibility in Settings
+  - export helpers lazy-loaded to keep export code off the initial app path
 - still open:
-  - Android QA log template needs real device use
   - release notes template needs to be used on the next release
-  - Android version support policy still needs to be written
+  - Android/browser support matrix still needs to be validated against real-device QA
+  - performance plan still needs more implementation work beyond export lazy-loading
 
 ## D. Suggested execution order
 
-1. Create and commit an Android QA log template
-2. Create and commit a release notes template
-3. Document the Android version support policy
-4. Run real-device QA on 2 phones
-5. Fix issues found in that QA
-6. Re-cut the next semver release after those fixes
+1. Use the release notes template on the next semver release
+2. Implement the next items from [docs/PERFORMANCE_REDUCTION_PLAN.md](docs/PERFORMANCE_REDUCTION_PLAN.md)
+3. Run real-device QA on 2 phones
+4. Fix issues found in that QA
+5. Re-cut the next semver release after those fixes
 
 ## 0.2 gate
 
