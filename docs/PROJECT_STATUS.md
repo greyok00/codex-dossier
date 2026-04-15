@@ -11,7 +11,7 @@ The repository includes active development code and specs for a local-first inci
 - Product and architecture specs: drafted and locked for MVP iteration
 - Backend MVP: implemented with integration tests
 - Frontend MVP: implemented local-first capture to report flow
-- Mobile packaging/release: pending
+- Mobile packaging/release: Android semver release flow is in place, iOS packaging remains pending
 
 ## What is built now
 
@@ -23,7 +23,7 @@ The repository includes active development code and specs for a local-first inci
 
 ## What is still in progress
 
-- Final mobile packaging and native release flow
+- Final signed Android release flow and iOS native packaging
 - Final production credential/billing modes
 - Performance tuning for model loading and device compatibility
 - Final UX/copy pass

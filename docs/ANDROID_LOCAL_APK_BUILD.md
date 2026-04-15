@@ -49,6 +49,15 @@ Debug APK output:
 frontend/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
+Versioned GitHub release path:
+
+```bash
+cd ..
+npm run release:android
+```
+
+That flow publishes a semver release such as `v0.1.2` and attaches the APK as a release asset instead of using a one-off release name.
+
 Install to a connected device:
 
 ```bash
@@ -83,4 +92,5 @@ That means:
 
 - Mobile WebView performance for local AI may still be heavier than desktop Chromium
 - The debug APK is large because the current web bundle includes ONNX and model runtime assets
+- The current published Android asset is a debug APK; signed release packaging is separate work
 - iOS native packaging is still separate work; for iOS we will evaluate `xtool` independently from this Android path
