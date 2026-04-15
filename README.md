@@ -43,6 +43,7 @@ More detail:
 
 - [docs/DETACHED_FRONTEND_BACKEND_ARCHITECTURE.md](docs/DETACHED_FRONTEND_BACKEND_ARCHITECTURE.md)
 - [docs/FRONTEND_UI_REBUILD_FEATURE_LIST.md](docs/FRONTEND_UI_REBUILD_FEATURE_LIST.md)
+- [docs/CAPACITOR_MOBILE_SHELL.md](docs/CAPACITOR_MOBILE_SHELL.md)
 
 ## Run It
 
@@ -113,5 +114,6 @@ npm run db:test:down
 ## Current Constraints
 
 - Large local AI assets are still the biggest frontend payload.
-- This repository does not yet contain a completed native Android/iOS packaging pipeline.
+- This repository now includes Capacitor Android and iOS project shells under `frontend/android` and `frontend/ios`.
+- Those folders are native wrapper projects, not proof that final `.apk` or `.ipa` binaries were built on this machine.
 - The web app is the active development and validation shell.

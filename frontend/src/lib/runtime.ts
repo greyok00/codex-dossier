@@ -1,3 +1,5 @@
+import { Capacitor } from "@capacitor/core";
+
 import type { DossierDatabase, FactTimelineItemRecord, RouteGroup, RouteTrustLevel } from "./db";
 import { getFrontendConfig } from "./config";
 import { database } from "./db";
@@ -607,6 +609,40 @@ export function createDefaultAppServices(): AppServices {
     api: getFrontendConfig().apiMode === "backend" ? createApiClient(getFrontendConfig().backendUrl) : createLazyLocalApiClient(),
     deviceUnlock: createDefaultDeviceUnlockBridge(),
     async share(input) {
+      if (isCapacitorNativePlatform()) {
+        try {
+          const { Share } = await import("@capacitor/share");
+          const firstFile = input.files?.[0];
+          const url = firstFile
+            ? await writeBlobToCapacitorCache({
+                filename: firstFile.name || "dossier-share.bin",
+                blob: firstFile,
+              })
+            : undefined;
+          const shareOptions: {
+            title?: string;
+            text?: string;
+            url?: string;
+            dialogTitle: string;
+          } = {
+            dialogTitle: input.title ?? "Share from Dossier",
+          };
+          if (input.title) {
+            shareOptions.title = input.title;
+          }
+          if (input.text) {
+            shareOptions.text = input.text;
+          }
+          if (url) {
+            shareOptions.url = url;
+          }
+          await Share.share(shareOptions);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
       if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
         return false;
       }
@@ -633,6 +669,19 @@ export function createDefaultAppServices(): AppServices {
       }
     },
     async openExternal(url) {
+      if (isCapacitorNativePlatform()) {
+        try {
+          const normalized = url.trim().toLowerCase();
+          if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            const { Browser } = await import("@capacitor/browser");
+            await Browser.open({ url });
+            return;
+          }
+        } catch {
+          // Fall back to the browser/webview location handling below.
+        }
+      }
+
       if (typeof window !== "undefined") {
         const normalized = url.trim().toLowerCase();
         if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
@@ -646,6 +695,17 @@ export function createDefaultAppServices(): AppServices {
       }
     },
     async downloadFile(input) {
+      if (isCapacitorNativePlatform()) {
+        const { Share } = await import("@capacitor/share");
+        const uri = await writeBlobToCapacitorCache(input);
+        await Share.share({
+          title: input.filename,
+          url: uri,
+          dialogTitle: `Export ${input.filename}`,
+        });
+        return;
+      }
+
       if (typeof document === "undefined") {
         return;
       }
@@ -684,6 +744,36 @@ export function createDefaultAppServices(): AppServices {
       }
 
       if (pendingPosition) {
+        return pendingPosition;
+      }
+
+      if (isCapacitorNativePlatform()) {
+        pendingPosition = (async () => {
+          try {
+            const { Geolocation } = await import("@capacitor/geolocation");
+            const position = await Geolocation.getCurrentPosition({
+              enableHighAccuracy: false,
+              timeout: 3500,
+              maximumAge: 30000,
+            });
+            cachedPosition = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              address: null,
+            };
+            return cachedPosition;
+          } catch {
+            cachedPosition = {
+              lat: null,
+              lng: null,
+              address: null,
+            };
+            return cachedPosition;
+          }
+        })().finally(() => {
+          pendingPosition = null;
+        });
+
         return pendingPosition;
       }
 
@@ -733,6 +823,46 @@ export function createDefaultAppServices(): AppServices {
 
 function supportsDeviceUnlock() {
   return typeof window !== "undefined" && "PublicKeyCredential" in window && typeof navigator.credentials !== "undefined";
+}
+
+function isCapacitorNativePlatform() {
+  return typeof window !== "undefined" && Capacitor.isNativePlatform();
+}
+
+function sanitizePortableFilename(filename: string) {
+  return filename.replace(/[^a-z0-9._-]+/gi, "-");
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+
+  return btoa(binary);
+}
+
+async function writeBlobToCapacitorCache(input: { filename: string; blob: Blob }) {
+  const { Directory, Filesystem } = await import("@capacitor/filesystem");
+  const path = `dossier/${Date.now()}-${sanitizePortableFilename(input.filename)}`;
+  const data = arrayBufferToBase64(await input.blob.arrayBuffer());
+
+  await Filesystem.writeFile({
+    path,
+    data,
+    directory: Directory.Cache,
+    recursive: true,
+  });
+
+  const uri = await Filesystem.getUri({
+    path,
+    directory: Directory.Cache,
+  });
+
+  return uri.uri;
 }
 
 function selectPreferredCaptureMimeType() {

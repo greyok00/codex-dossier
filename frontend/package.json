@@ -4,6 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "cap:add:android": "cap add android",
+    "cap:add:ios": "cap add ios",
+    "cap:copy": "npm run build && cap copy",
+    "cap:open:android": "cap open android",
+    "cap:open:ios": "cap open ios",
+    "cap:sync": "npm run build && cap sync",
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview --host 0.0.0.0",
@@ -12,6 +18,14 @@
     "verify:links": "node ./scripts/verify-links.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/browser": "^8.0.3",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/geolocation": "^8.2.0",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/share": "^8.0.1",
     "@fontsource-variable/geist": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
     "@huggingface/transformers": "^4.0.1",
