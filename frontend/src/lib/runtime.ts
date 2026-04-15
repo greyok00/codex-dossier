@@ -660,7 +660,20 @@ export function createDefaultAppServices(): AppServices {
 
       try {
         if (typeof navigator.canShare === "function" && shareData.files && !navigator.canShare({ files: shareData.files })) {
-          return false;
+          const textOnlyShare: ShareData = {};
+          if (shareData.title) {
+            textOnlyShare.title = shareData.title;
+          }
+          if (shareData.text) {
+            textOnlyShare.text = shareData.text;
+          }
+
+          if (!textOnlyShare.title && !textOnlyShare.text) {
+            return false;
+          }
+
+          await navigator.share(textOnlyShare);
+          return true;
         }
         await navigator.share(shareData);
         return true;

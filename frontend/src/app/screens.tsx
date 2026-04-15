@@ -2268,6 +2268,7 @@ export function SendActionPanel({
 }) {
   const queryClient = useQueryClient();
   const [actionNote, setActionNote] = useState<string | null>(null);
+  const hasManualFallbackDetails = Boolean(selectedRoute.complaint_url || selectedRoute.email || selectedRoute.phone);
 
   function buildClipboardReportText() {
     if (!approvedDraft) {
@@ -2362,6 +2363,17 @@ export function SendActionPanel({
     return copied;
   }
 
+  async function copyManualValue(value: string | null, successMessage: string, fallbackMessage: string) {
+    if (!value) {
+      setActionNote(fallbackMessage);
+      return false;
+    }
+
+    const copied = await copyTextToClipboard(value);
+    setActionNote(copied ? successMessage : "Clipboard access is not available in this browser right now.");
+    return copied;
+  }
+
   return (
     <>
       {!approvedDraft ? <InlineNote message="Approve the report draft to unlock email and share actions." /> : null}
@@ -2386,7 +2398,7 @@ export function SendActionPanel({
               setActionNote(
                 copied
                   ? "The official site opened outside Dossier and the report text was copied to your clipboard."
-                  : "The official site opened outside Dossier. Return here when you are ready to save proof.",
+                  : "The official site opened outside Dossier. Use the manual handoff details below if you need to copy the route information first.",
               );
             })();
           }}
@@ -2416,7 +2428,7 @@ export function SendActionPanel({
               setActionNote(
                 copied
                   ? "Your email app was opened and the report text was copied to your clipboard."
-                  : "Your email app was opened. Return here after sending to save proof.",
+                  : "Your email app was opened. Use the manual handoff details below if you need to copy the report or destination details first.",
               );
             })();
           }}
@@ -2489,14 +2501,19 @@ export function SendActionPanel({
 
               await services.downloadFile(packet);
               await queryClient.invalidateQueries({ queryKey: ["case-file-summary", incidentId] });
-              setActionNote("Share is not available in this browser. The PDF packet was downloaded instead.");
+              const copied = await copyApprovedDraftToClipboard();
+              setActionNote(
+                copied
+                  ? "Share is not available in this browser. The PDF packet was downloaded and the report text was copied to your clipboard."
+                  : "Share is not available in this browser. The PDF packet was downloaded instead. Use the manual handoff details below if you need to copy the report text.",
+              );
             })();
           }}
           type="button"
         >
           <span className="action-card__icon"><Share2 aria-hidden="true" /></span>
           <strong className="action-card__title">Share packet</strong>
-          <span>Use the device share sheet when available.</span>
+          <span>Use the device share sheet when available. On the web, Dossier falls back to download and manual handoff.</span>
         </button>
 
         <button
@@ -2552,6 +2569,52 @@ export function SendActionPanel({
           <span>Create a portable case packet with source files.</span>
         </button>
       </section>
+      {hasManualFallbackDetails ? (
+        <section className="settings-card settings-card--subtle">
+          <div className="section-heading">
+            <h2>Manual handoff</h2>
+            <span className="status-chip">Web fallback</span>
+          </div>
+          <p>Use these details if the browser blocks share, clipboard, or external handoff. The case stays saved locally while you finish outside Dossier.</p>
+          <dl className="detail-list">
+            {selectedRoute.complaint_url ? (
+              <div>
+                <dt>Official form</dt>
+                <dd>{selectedRoute.complaint_url}</dd>
+              </div>
+            ) : null}
+            {selectedRoute.email ? (
+              <div>
+                <dt>Email</dt>
+                <dd>{selectedRoute.email}</dd>
+              </div>
+            ) : null}
+            {selectedRoute.phone ? (
+              <div>
+                <dt>Phone</dt>
+                <dd>{selectedRoute.phone}</dd>
+              </div>
+            ) : null}
+          </dl>
+          <div className="button-row">
+            {selectedRoute.complaint_url ? (
+              <PrimaryButton icon={Copy} onClick={() => { void copyManualValue(selectedRoute.complaint_url, "The official form link was copied to your clipboard.", "No official form is listed for this route."); }}>
+                Copy official link
+              </PrimaryButton>
+            ) : null}
+            {selectedRoute.email ? (
+              <PrimaryButton icon={Copy} onClick={() => { void copyManualValue(selectedRoute.email, "The destination email was copied to your clipboard.", "No email address is listed for this route."); }}>
+                Copy email
+              </PrimaryButton>
+            ) : null}
+            {selectedRoute.phone ? (
+              <PrimaryButton icon={Copy} onClick={() => { void copyManualValue(selectedRoute.phone, "The destination phone number was copied to your clipboard.", "No phone number is listed for this route."); }}>
+                Copy phone
+              </PrimaryButton>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
       {actionNote ? <InlineNote message={actionNote} /> : null}
     </>
   );

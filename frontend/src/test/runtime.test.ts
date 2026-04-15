@@ -47,4 +47,33 @@ describe("default app services", () => {
     });
     expect(secondResult).toEqual(firstResult);
   });
+
+  it("falls back to text-only web share when file sharing is unsupported", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    const canShare = vi.fn().mockReturnValue(false);
+
+    Object.defineProperty(globalThis.navigator, "share", {
+      configurable: true,
+      value: share,
+    });
+    Object.defineProperty(globalThis.navigator, "canShare", {
+      configurable: true,
+      value: canShare,
+    });
+
+    const { createDefaultAppServices } = await import("../lib/runtime");
+    const services = createDefaultAppServices();
+    const shared = await services.share({
+      title: "Dossier",
+      text: "Report text",
+      files: [new File(["test"], "packet.txt", { type: "text/plain" })],
+    });
+
+    expect(shared).toBe(true);
+    expect(canShare).toHaveBeenCalled();
+    expect(share).toHaveBeenCalledWith({
+      title: "Dossier",
+      text: "Report text",
+    });
+  });
 });
