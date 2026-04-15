@@ -1,6 +1,6 @@
 # codex-dossier
 
-![Dossier app preview](docs/media/dossier-readme-preview.png)
+![Dossier app preview](docs/media/dossier-readme-preview-phone-390.png)
 
 Dossier is a local-first incident capture and reporting app.
 
