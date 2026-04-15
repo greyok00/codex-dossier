@@ -375,12 +375,13 @@ export function PrepareLocalAiScreen({
   }, []);
 
   const localSetupDetail = usesNativeShell
-    ? "First setup loads the offline speech tools bundled into this app, then keeps them cached on this device."
+    ? "First setup verifies the bundled speech tools and finishes device setup. The first transcript loads them on this device."
     : "First setup downloads the offline speech and writing models once, then keeps them cached on this device.";
 
   const localAiGuideItems = usesNativeShell
     ? [
-        "Speech model: turns your audio capture into transcript text on-device.",
+        "Speech tools are bundled into the app instead of being downloaded at setup.",
+        "The first transcript loads the speech model on-device and shows live progress there.",
         "Drafts start with standard local report writing in this packaged build.",
         "No cloud calls for AI in this mode. Bundled tools stay cached for offline reuse.",
       ]

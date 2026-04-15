@@ -698,12 +698,32 @@ function normalizeSentence(value: string) {
 export function createWhisperTinyTranscriber(): LocalTranscriber {
   let pipelinePromise: Promise<(audio: Float32Array, options: Record<string, unknown>) => Promise<unknown>> | null = null;
   let modelIdPromise: Promise<string> | null = null;
+  const nativeBundleReadyLabel = "Built-in speech tools are bundled with this app and will finish loading when you create a transcript.";
 
   return {
     async prepare(input = {}) {
       modelIdPromise ??= resolvePreferredWhisperModel();
       let modelId = await modelIdPromise;
       const alreadyLoaded = Boolean(pipelinePromise);
+      if (isCapacitorNativePlatform()) {
+        const preparedAt = new Date().toISOString();
+        input.onProgress?.({
+          stage: "ready",
+          label: nativeBundleReadyLabel,
+          progress: 100,
+          loaded_bytes: null,
+          total_bytes: null,
+          file: null,
+          model: modelId,
+        });
+        return {
+          model: modelId,
+          prepared_at: preparedAt,
+          cached: alreadyLoaded,
+          warnings: [],
+        };
+      }
+
       const loaded = await loadWhisperPipelineWithFallback(pipelinePromise, input.onProgress, modelId);
       if (loaded.modelId !== modelId) {
         modelId = loaded.modelId;

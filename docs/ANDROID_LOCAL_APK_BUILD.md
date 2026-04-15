@@ -56,7 +56,7 @@ cd ..
 npm run release:android
 ```
 
-That flow publishes a semver release such as `v0.1.3` and attaches the APK as a release asset instead of using a one-off release name.
+That flow publishes a semver release such as `v0.1.4` and attaches the APK as a release asset instead of using a one-off release name.
 
 Install to a connected device:
 

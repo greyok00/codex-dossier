@@ -11,8 +11,8 @@ Dossier now uses semver as the primary release line.
 
 ## Current line
 
-- Active release tag format: `v0.1.3`, `v0.1.4`, `v0.2.0`
-- Current Android asset format: `dossier-v0.1.3-android-debug.apk`
+- Active release tag format: `v0.1.4`, `v0.1.5`, `v0.2.0`
+- Current Android asset format: `dossier-v0.1.4-android-debug.apk`
 
 ## Release command
 

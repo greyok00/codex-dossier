@@ -97,4 +97,38 @@ describe("local AI native fallbacks", () => {
       "Enhanced local writing is not bundled in this app build. Using standard local draft mode.",
     );
   });
+
+  it("does not instantiate the whisper pipeline during native setup", async () => {
+    const pipeline = vi.fn();
+    vi.doMock("@huggingface/transformers", () => ({
+      env: {
+        useBrowserCache: true,
+        allowLocalModels: true,
+        allowRemoteModels: false,
+        localModelPath: "/models/",
+      },
+      pipeline,
+    }));
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/models/Xenova/whisper-tiny.en/config.json")) {
+          return Promise.resolve(new Response("", { status: 200 }));
+        }
+        return Promise.resolve(new Response("", { status: 404 }));
+      }),
+    );
+
+    const { createWhisperTinyTranscriber } = await import("../lib/local-ai");
+    const transcriber = createWhisperTinyTranscriber();
+    if (typeof transcriber.prepare !== "function") {
+      throw new Error("Expected native transcriber prepare() to exist.");
+    }
+    const prepared = await transcriber.prepare();
+
+    expect(prepared.model).toBe("Xenova/whisper-tiny.en");
+    expect(pipeline).not.toHaveBeenCalled();
+  });
 });
