@@ -659,7 +659,7 @@ export async function ensureDemoWalkthroughCase(db: DossierDatabase): Promise<st
     phone: "(602) 542-5763",
     mailing_address: "2005 N Central Ave, Phoenix, AZ 85004",
     intake_methods_snapshot: ["web_form", "phone"],
-    required_documents_snapshot: ["Case summary", "Date and amount", "Proof packet"],
+    required_documents_snapshot: ["Dossier summary", "Date and amount", "Proof packet"],
     available_actions: ["open_form", "call", "share", "export_pdf", "export_zip"],
     selected: true,
     created_at: now,

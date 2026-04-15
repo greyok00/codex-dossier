@@ -62,7 +62,7 @@ export async function buildCasePdf(summary: CaseFileSummary) {
   }
 
   if (summary.draft_packet) {
-    drawLine("Draft report", { bold: true, gapAfter: 20 });
+    drawLine("Official brief", { bold: true, gapAfter: 20 });
     drawLine(`Subject: ${summary.draft_packet.subject}`);
     for (const line of summary.draft_packet.body.split("\n")) {
       drawLine(line.length > 0 ? line : " ");
@@ -71,7 +71,7 @@ export async function buildCasePdf(summary: CaseFileSummary) {
   }
 
   if (summary.submission_proof) {
-    drawLine("Proof of action", { bold: true, gapAfter: 20 });
+    drawLine("Filing receipt", { bold: true, gapAfter: 20 });
     drawLine(`Method: ${summary.submission_proof.method}`);
     drawLine(`Status: ${summary.submission_proof.status}`);
     drawLine(`Confirmation: ${summary.submission_proof.confirmation_number ?? "Not saved"}`);

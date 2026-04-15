@@ -123,6 +123,21 @@ function RuntimeStatusPanel() {
       ? "Waiting for first health check."
       : `Last checked ${runtimeStatusTimeFormatter.format(new Date(checkedAt))}.`;
 
+  const isCompact = config.apiMode !== "backend" || healthState === "healthy" || healthState === "checking";
+
+  if (isCompact) {
+    return (
+      <section aria-live="polite" className="runtime-panel runtime-panel--compact">
+        <div className="runtime-panel__badges">
+          <GlassBadge variant="outline">{runtimeLabel}</GlassBadge>
+          <GlassBadge variant="default">{modeLabel}</GlassBadge>
+          <GlassBadge variant={healthVariant}>{config.apiMode === "backend" ? healthState : "local-first ready"}</GlassBadge>
+        </div>
+        <p>{config.apiMode === "backend" ? statusMessage : "Everything important stays on this device. The backend is optional unless you explicitly enable it."}</p>
+      </section>
+    );
+  }
+
   return (
     <section aria-live="polite" className="runtime-panel">
       <div className="runtime-panel__summary">
@@ -258,7 +273,7 @@ export function AuthenticatedShell({
       </div>
       <nav aria-label="Primary" className="bottom-nav">
         <TabLink icon={Mic} to="/capture">Record</TabLink>
-        <TabLink icon={FolderOpen} to="/cases">Cases</TabLink>
+        <TabLink icon={FolderOpen} to="/cases">Home</TabLink>
         <TabLink icon={Send} to="/routes">Report</TabLink>
         <TabLink icon={Settings2} to="/settings">Settings</TabLink>
       </nav>

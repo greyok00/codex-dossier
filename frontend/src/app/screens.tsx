@@ -1273,56 +1273,148 @@ export function CasesScreen({
     },
   });
 
+  const activeCase = cases[0] ?? null;
+  const activeSummaryQuery = useQuery({
+    queryKey: ["case-home-summary", activeCase?.id ?? ""],
+    queryFn: () => getCaseFileSummary(db, activeCase?.id ?? ""),
+    enabled: Boolean(activeCase?.id),
+  });
+
+  const activeSummary = activeSummaryQuery.data;
+  const activeSelectedRoute = activeSummary?.routes.find((route) => route.selected) ?? null;
+  const activeChecklist = activeSummary
+    ? [
+        Boolean(activeSummary.source_evidence),
+        Boolean(activeSummary.transcript),
+        Boolean(activeSummary.fact_set),
+        Boolean(activeSelectedRoute),
+        Boolean(activeSummary.draft_packet?.approved),
+        Boolean(activeSummary.submission_proof),
+      ]
+    : [];
+  const activeChecklistCount = activeChecklist.filter(Boolean).length;
+  const activeProgress = activeChecklist.length > 0 ? Math.round((activeChecklistCount / activeChecklist.length) * 100) : 0;
+  const activeNextHref =
+    !activeSummary?.source_evidence
+      ? "/capture"
+      : !activeSummary.transcript
+        ? `/cases/${activeCase?.id}/transcript`
+        : !activeSummary.fact_set
+          ? `/cases/${activeCase?.id}/facts`
+          : !activeSelectedRoute
+            ? `/cases/${activeCase?.id}/routes`
+            : !activeSummary.draft_packet?.approved
+              ? `/cases/${activeCase?.id}/draft`
+              : !activeSummary.submission_proof
+                ? `/cases/${activeCase?.id}/proof`
+                : `/cases/${activeCase?.id}`;
+  const activeNextLabel =
+    !activeSummary?.source_evidence
+      ? "Start first case"
+      : !activeSummary.transcript
+        ? "Create transcript"
+        : !activeSummary.fact_set
+          ? "Confirm details"
+          : !activeSelectedRoute
+            ? "Choose destination"
+            : !activeSummary.draft_packet?.approved
+              ? "Review report"
+              : !activeSummary.submission_proof
+                ? "Save filing receipt"
+                : "Open dossier";
+
   return (
     <main className="screen">
       <header className="content-header">
-        <h1 className="screen-title">Saved cases</h1>
-        <p className="screen-body">Open, review, or delete the cases stored on this device.</p>
+        <h1 className="screen-title">Case home</h1>
+        <p className="screen-body">Resume the active dossier, move it forward, or open anything already stored on this device.</p>
       </header>
       {walkthroughEnabled ? <WalkthroughHint step={1} title="Start with the sample case" body='Open the demo case to see the full flow. When you finish, come back here and press "Delete case" to practice cleanup.' /> : null}
       {cases.length === 0 ? (
         <EmptyState title="No cases yet" detail="Start a recording to create your first case." />
       ) : (
-        <ul className="case-list">
-          {cases.map((record) => (
-            <li className="case-card" key={record.id}>
-              <dl className="detail-list">
-                <div>
-                  <dt>Reference</dt>
-                  <dd>{record.id}</dd>
+        <>
+          {activeCase ? (
+            <section className="case-home-hero">
+              <div className="case-home-hero__header">
+                <div className="case-home-hero__eyebrow">
+                  <span className="status-chip status-chip--selected">Active dossier</span>
+                  <span className="status-chip">Case {activeCase.id}</span>
                 </div>
-                <div>
-                  <dt>Case type</dt>
-                  <dd>{formatCaseTypeLabel(record.category) || "Not set"}</dd>
-                </div>
-                <div>
-                  <dt>Location</dt>
-                  <dd>{record.location_address ?? "Location unavailable"}</dd>
-                </div>
-              </dl>
-              <div className="button-row">
-                <LinkButton className={walkthroughEnabled && demoCaseId === record.id ? "walkthrough-target" : undefined} icon={FolderOpen} to={`/cases/${record.id}`}>
-                  Open case
-                </LinkButton>
-                <LinkButton icon={MapPinned} to={`/cases/${record.id}/routes`}>Choose where to report</LinkButton>
-                <button
-                  className={walkthroughEnabled && demoCaseId === record.id ? "secondary-button danger-button walkthrough-target" : "secondary-button danger-button"}
-                  disabled={deleteMutation.isPending}
-                  onClick={() => {
-                    const confirmed = window.confirm("Delete this case and all saved items on this device?");
-                    if (!confirmed) {
-                      return;
-                    }
-                    void deleteMutation.mutate(record.id);
-                  }}
-                  type="button"
-                >
-                  Delete case
-                </button>
+                <h2>{formatCaseTypeLabel(activeSummary?.fact_set?.incident_type ?? activeCase.category) || "Case in progress"}</h2>
+                <p>{activeCase.location_address ?? "Location not saved yet"}</p>
               </div>
-            </li>
-          ))}
-        </ul>
+              <div className="case-home-hero__stats">
+                <article className="case-home-stat">
+                  <span className="case-home-stat__label">Progress</span>
+                  <strong>{activeProgress}%</strong>
+                  <p>{activeChecklistCount} of 6 core steps complete.</p>
+                </article>
+                <article className="case-home-stat">
+                  <span className="case-home-stat__label">Destination</span>
+                  <strong>{activeSelectedRoute?.destination_name_snapshot ?? "Not selected"}</strong>
+                  <p>{activeSelectedRoute?.source_label ?? "Choose a reporting path when you are ready."}</p>
+                </article>
+                <article className="case-home-stat">
+                  <span className="case-home-stat__label">Report status</span>
+                  <strong>{activeSummary?.draft_packet?.approved ? "Approved" : activeSummary?.draft_packet ? "Draft ready" : "Not started"}</strong>
+                  <p>{activeSummary?.submission_proof ? "Filing receipt saved." : "Submission record not saved yet."}</p>
+                </article>
+              </div>
+              <div className="case-home-hero__actions">
+                <LinkButton className={walkthroughEnabled && demoCaseId === activeCase.id ? "walkthrough-target" : undefined} icon={FolderOpen} to={activeNextHref}>
+                  {activeNextLabel}
+                </LinkButton>
+                <LinkButton icon={MapPinned} to={`/cases/${activeCase.id}/routes`}>Open destinations</LinkButton>
+                <LinkButton icon={Package} to={`/cases/${activeCase.id}/export`}>Open case packet</LinkButton>
+              </div>
+            </section>
+          ) : null}
+
+          <section className="case-home-section">
+            <div className="section-heading">
+              <h2>Recent dossiers</h2>
+              <span className="status-chip">{cases.length} saved</span>
+            </div>
+            <ul className="case-list case-list--luxury">
+              {cases.map((record, index) => (
+                <li className={buildChipClassName("case-card", index === 0 && "case-card--active")} key={record.id}>
+                  <div className="case-card__hero">
+                    <div>
+                      <p className="summary-stat-card__eyebrow">{index === 0 ? "Current focus" : "Saved dossier"}</p>
+                      <h2>{formatCaseTypeLabel(record.category) || "Case"}</h2>
+                      <p>{record.location_address ?? "Location unavailable"}</p>
+                    </div>
+                    <div className="route-card__chips">
+                      <span className="status-chip">Case {record.id}</span>
+                      {demoCaseId === record.id ? <span className="status-chip status-chip--selected">Demo</span> : null}
+                    </div>
+                  </div>
+                  <div className="button-row">
+                    <LinkButton className={walkthroughEnabled && demoCaseId === record.id ? "walkthrough-target" : undefined} icon={FolderOpen} to={`/cases/${record.id}`}>
+                      Open dossier
+                    </LinkButton>
+                    <LinkButton icon={MapPinned} to={`/cases/${record.id}/routes`}>Destinations</LinkButton>
+                    <button
+                      className={walkthroughEnabled && demoCaseId === record.id ? "secondary-button danger-button walkthrough-target" : "secondary-button danger-button"}
+                      disabled={deleteMutation.isPending}
+                      onClick={() => {
+                        const confirmed = window.confirm("Delete this case and all saved items on this device?");
+                        if (!confirmed) {
+                          return;
+                        }
+                        void deleteMutation.mutate(record.id);
+                      }}
+                      type="button"
+                    >
+                      Delete case
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
       )}
       {deleteMutation.error ? <InlineError message="Case delete did not complete." /> : null}
     </main>
@@ -1356,13 +1448,13 @@ export function RoutesIndexScreen({
   return (
     <main className="screen">
       <header className="content-header">
-        <h1 className="screen-title">Reporting options</h1>
-        <p className="screen-body">Review saved reporting options for each case.</p>
+        <h1 className="screen-title">Destinations</h1>
+        <p className="screen-body">Review saved filing destinations for each case on this device.</p>
       </header>
-      {walkthroughEnabled ? <WalkthroughHint step={2} title="Open saved reporting options" body="Use this tab to review the saved reporting options for each case." /> : null}
+      {walkthroughEnabled ? <WalkthroughHint step={2} title="Open saved destinations" body="Use this tab to review the saved filing destinations for each case." /> : null}
 
       {cases.length === 0 ? (
-        <EmptyState title="No reporting options yet" detail="Check the case details first, then open reporting options." />
+        <EmptyState title="No destinations yet" detail="Check the case details first, then open destinations." />
       ) : (
         <ul className="case-list">
           {cases.map((record) => (
@@ -1370,7 +1462,7 @@ export function RoutesIndexScreen({
               <h2>{record.title}</h2>
               <p>{formatCaseTypeLabel(record.category) || "No case type set"}</p>
               <LinkButton className={walkthroughEnabled && demoCaseId === record.id ? "walkthrough-target" : undefined} icon={MapPinned} to={`/cases/${record.id}/routes`}>
-                Open options
+                Open destinations
               </LinkButton>
             </li>
           ))}
@@ -1391,6 +1483,7 @@ export function CaseRoutesScreen({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
   const { incidentId = "" } = useParams();
   const captureQuery = useQuery({
     queryKey: ["capture-context", incidentId],
@@ -1502,6 +1595,14 @@ export function CaseRoutesScreen({
     void recommendMutation.mutate();
   }, [factSetQuery.data?.fact_set, recommendMutation, routesQuery.data?.recommendations?.length]);
 
+  useEffect(() => {
+    const primaryRoute = routesQuery.data?.recommendations.find((route) => route.selected) ?? routesQuery.data?.recommendations[0] ?? null;
+    if (!primaryRoute) {
+      return;
+    }
+    setExpandedRouteId((current) => current ?? primaryRoute.id);
+  }, [routesQuery.data?.recommendations]);
+
   if (captureQuery.isLoading || factSetQuery.isLoading || routesQuery.isLoading) {
     return <LoadingScreen title="Choose where to report" body="Loading reporting options for this case." />;
   }
@@ -1526,6 +1627,7 @@ export function CaseRoutesScreen({
   }
 
   const selectedRoute = routesQuery.data.recommendations.find((route) => route.selected) ?? null;
+  const primaryRoute = selectedRoute ?? routesQuery.data.recommendations[0] ?? null;
   const approvedDraft = draftSummaryQuery.data?.draft_packet && draftSummaryQuery.data.draft_packet.approved
     ? { subject: draftSummaryQuery.data.draft_packet.subject, body: draftSummaryQuery.data.draft_packet.body }
     : null;
@@ -1534,82 +1636,97 @@ export function CaseRoutesScreen({
     <main className="screen">
       <header className="content-header">
         <h1 className="screen-title">Choose where to report</h1>
-        <p className="screen-body">These options are matched to your saved details. Official sources are shown when available.</p>
+        <p className="screen-body">Pick a single filing path for this dossier. That route becomes the official destination for the report, proof, and export packet.</p>
       </header>
 
       {walkthroughEnabled ? <WalkthroughHint step={5} title="Choose where to report" body='Open one option card, then use "Write report" on that same card.' /> : null}
 
-      <section className="settings-card">
-        <h2>Best matches</h2>
-        <p>Each option stands on its own. Open the source, choose one, or write a report directly from the card.</p>
-        <div className="button-row">
-          <span className="status-chip">{routesQuery.data.recommendations.length} saved options</span>
-          <button
-            className="secondary-button"
-            disabled={recommendMutation.isPending}
-            onClick={() => {
-              autoRefreshRoutesRef.current = true;
-              void recommendMutation.mutate();
-            }}
-            type="button"
-          >
-            <RefreshCw aria-hidden="true" />
-            {recommendMutation.isPending ? "Refreshing options" : "Refresh options"}
-          </button>
-        </div>
-      </section>
-
-      <div className="route-card-list">
-        {routesQuery.data.recommendations.map((recommendation) => (
-          <section className={buildChipClassName("settings-card", recommendation.selected && "settings-card--selected")} key={recommendation.id}>
-            <div className="section-heading">
-              <h2>{recommendation.destination_name_snapshot}</h2>
-              <span className="status-chip">{routePriorityLabel(recommendation.rank)}</span>
+      {primaryRoute ? (
+        <section className="destination-hero">
+          <div className="destination-hero__header">
+            <div>
+              <p className="summary-stat-card__eyebrow">{selectedRoute ? "Current filing path" : "Recommended filing path"}</p>
+              <h2>{primaryRoute.destination_name_snapshot}</h2>
+              <p>{primaryRoute.reason}</p>
             </div>
             <div className="route-card__chips">
-              <span className={routeGroupChipClass(recommendation.route_group)}>{recommendation.route_group}</span>
-              <span className={trustChipClass(recommendation.trust_level)}>{recommendation.trust_level}</span>
-              <span className={destinationTypeChipClass(recommendation.destination_type_snapshot)}>{recommendation.destination_type_snapshot.replaceAll("_", " ")}</span>
-              {recommendation.selected ? <span className="status-chip status-chip--selected">Current option</span> : null}
+              <span className={routeGroupChipClass(primaryRoute.route_group)}>{primaryRoute.route_group}</span>
+              <span className={trustChipClass(primaryRoute.trust_level)}>{primaryRoute.trust_level}</span>
+              <span className={destinationTypeChipClass(primaryRoute.destination_type_snapshot)}>{primaryRoute.destination_type_snapshot.replaceAll("_", " ")}</span>
             </div>
-            <p>{recommendation.reason}</p>
-            <dl className="detail-list">
-              <div>
-                <dt>Source</dt>
-                <dd>{recommendation.source_label}</dd>
-              </div>
-              <div>
-                <dt>Trust</dt>
-                <dd>{recommendation.trust_level}</dd>
-              </div>
-              <div>
-                <dt>Last verified</dt>
-                <dd>{recommendation.last_verified_date ?? "Not set"}</dd>
-              </div>
-              <div>
-                <dt>How to send</dt>
-                <dd>{recommendation.intake_methods_snapshot.join(", ")}</dd>
-              </div>
-              {recommendation.phone ? (
-                <div>
-                  <dt>Phone</dt>
-                  <dd>{recommendation.phone}</dd>
+          </div>
+          <div className="destination-hero__meta">
+            <article>
+              <span>Source</span>
+              <strong>{primaryRoute.source_label}</strong>
+            </article>
+            <article>
+              <span>How to send</span>
+              <strong>{primaryRoute.intake_methods_snapshot.join(", ")}</strong>
+            </article>
+            <article>
+              <span>Registry status</span>
+              <strong>{primaryRoute.last_verified_date ?? "Current route registry"}</strong>
+            </article>
+          </div>
+          <div className="destination-hero__actions">
+            <PrimaryButton
+              disabled={selectMutation.isPending && selectMutation.variables?.routeRecommendationId === primaryRoute.id}
+              icon={primaryRoute.selected ? CheckCircle2 : MapPinned}
+              onClick={() => {
+                void selectRouteForCase(primaryRoute.id);
+              }}
+            >
+              {primaryRoute.selected ? "Using this route" : "Use this route"}
+            </PrimaryButton>
+            <button
+              className={walkthroughEnabled ? "secondary-button walkthrough-target" : "secondary-button"}
+              disabled={selectMutation.isPending}
+              onClick={() => {
+                void beginReportForRoute(primaryRoute.id);
+              }}
+              type="button"
+            >
+              <NotebookPen aria-hidden="true" />
+              Write report
+            </button>
+            <button
+              className="secondary-button"
+              disabled={recommendMutation.isPending}
+              onClick={() => {
+                autoRefreshRoutesRef.current = true;
+                void recommendMutation.mutate();
+              }}
+              type="button"
+            >
+              <RefreshCw aria-hidden="true" />
+              {recommendMutation.isPending ? "Refreshing" : "Refresh options"}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      <div className="destination-picker">
+        {routesQuery.data.recommendations.map((recommendation) => (
+          <section className={buildChipClassName("route-option-card", recommendation.selected && "route-option-card--selected")} key={recommendation.id}>
+            <div className="route-option-card__summary">
+              <div className="route-option-card__copy">
+                <div className="section-heading">
+                  <h2>{recommendation.destination_name_snapshot}</h2>
+                  <span className="status-chip">{routePriorityLabel(recommendation.rank)}</span>
                 </div>
-              ) : null}
-              {recommendation.email ? (
-                <div>
-                  <dt>Email</dt>
-                  <dd>{recommendation.email}</dd>
-                </div>
-              ) : null}
-              {recommendation.mailing_address ? (
-                <div>
-                  <dt>Mailing address</dt>
-                  <dd>{recommendation.mailing_address}</dd>
-                </div>
-              ) : null}
-            </dl>
-            {recommendation.required_documents_snapshot.length > 0 ? <p>What you may need: {recommendation.required_documents_snapshot.join(", ")}</p> : null}
+                <p>{recommendation.reason}</p>
+              </div>
+              <div className="route-card__chips">
+                <span className={routeGroupChipClass(recommendation.route_group)}>{recommendation.route_group}</span>
+                <span className={trustChipClass(recommendation.trust_level)}>{recommendation.trust_level}</span>
+                {recommendation.selected ? <span className="status-chip status-chip--selected">Active route</span> : null}
+              </div>
+            </div>
+            <div className="route-card__chips">
+              <span className={destinationTypeChipClass(recommendation.destination_type_snapshot)}>{recommendation.destination_type_snapshot.replaceAll("_", " ")}</span>
+              <span className="status-chip">{recommendation.source_label}</span>
+            </div>
             <div className="button-row">
               <PrimaryButton
                 disabled={selectMutation.isPending && selectMutation.variables?.routeRecommendationId === recommendation.id}
@@ -1631,64 +1748,97 @@ export function CaseRoutesScreen({
                 <NotebookPen aria-hidden="true" />
                 Write report
               </button>
-              {recommendation.selected && approvedDraft ? (
-                <button
-                  className="secondary-button"
-                  onClick={() => {
-                    navigate(`/cases/${incidentId}/send`);
-                  }}
-                  type="button"
-                >
-                  <Send aria-hidden="true" />
-                  Send report
-                </button>
-              ) : null}
-              {recommendation.source_url ? (
-                <a className="secondary-button" href={recommendation.source_url} rel="noreferrer" target="_blank">
-                  <ExternalLink aria-hidden="true" />
-                  Source
-                </a>
-              ) : null}
-              {recommendation.complaint_url ? (
-                <a className="secondary-button" href={recommendation.complaint_url} rel="noreferrer" target="_blank">
-                  <ExternalLink aria-hidden="true" />
-                  Official form
-                </a>
-              ) : null}
-              {recommendation.phone ? (
-                <a className="secondary-button" href={`tel:${recommendation.phone}`}>
-                  <Phone aria-hidden="true" />
-                  Call
-                </a>
-              ) : null}
-              {recommendation.email ? (
-                <a className="secondary-button" href={`mailto:${recommendation.email}`}>
-                  <Mail aria-hidden="true" />
-                  Email
-                </a>
-              ) : null}
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setExpandedRouteId((current) => (current === recommendation.id ? null : recommendation.id));
+                }}
+                type="button"
+              >
+                <SlidersHorizontal aria-hidden="true" />
+                {expandedRouteId === recommendation.id ? "Hide details" : "Details"}
+              </button>
             </div>
-            {recommendation.selected ? (
-              <div className="route-card__selected-panel">
-                <h3>This option is active for this case</h3>
-                <p>Anything you write, send, export, or confirm next will use this destination.</p>
+            {expandedRouteId === recommendation.id ? (
+              <div className={buildChipClassName("route-card__selected-panel", recommendation.selected && "route-card__selected-panel--active")}>
+                <dl className="detail-list">
+                  <div>
+                    <dt>Source</dt>
+                    <dd>{recommendation.source_label}</dd>
+                  </div>
+                  <div>
+                    <dt>Last verified</dt>
+                    <dd>{recommendation.last_verified_date ?? "Not set"}</dd>
+                  </div>
+                  <div>
+                    <dt>How to send</dt>
+                    <dd>{recommendation.intake_methods_snapshot.join(", ")}</dd>
+                  </div>
+                  {recommendation.phone ? (
+                    <div>
+                      <dt>Phone</dt>
+                      <dd>{recommendation.phone}</dd>
+                    </div>
+                  ) : null}
+                  {recommendation.email ? (
+                    <div>
+                      <dt>Email</dt>
+                      <dd>{recommendation.email}</dd>
+                    </div>
+                  ) : null}
+                  {recommendation.mailing_address ? (
+                    <div>
+                      <dt>Mailing address</dt>
+                      <dd>{recommendation.mailing_address}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+                {recommendation.required_documents_snapshot.length > 0 ? <p>Likely needed: {recommendation.required_documents_snapshot.join(", ")}</p> : null}
                 <div className="button-row">
-                  <button
-                    className="secondary-button"
-                    onClick={() => {
-                      void beginReportForRoute(recommendation.id);
-                    }}
-                    type="button"
-                  >
-                    <NotebookPen aria-hidden="true" />
-                    Continue with this option
-                  </button>
+                  {recommendation.source_url ? (
+                    <a className="secondary-button" href={recommendation.source_url} rel="noreferrer" target="_blank">
+                      <ExternalLink aria-hidden="true" />
+                      Source
+                    </a>
+                  ) : null}
+                  {recommendation.complaint_url ? (
+                    <a className="secondary-button" href={recommendation.complaint_url} rel="noreferrer" target="_blank">
+                      <ExternalLink aria-hidden="true" />
+                      Official form
+                    </a>
+                  ) : null}
+                  {recommendation.phone ? (
+                    <a className="secondary-button" href={`tel:${recommendation.phone}`}>
+                      <Phone aria-hidden="true" />
+                      Call
+                    </a>
+                  ) : null}
+                  {recommendation.email ? (
+                    <a className="secondary-button" href={`mailto:${recommendation.email}`}>
+                      <Mail aria-hidden="true" />
+                      Email
+                    </a>
+                  ) : null}
+                  {recommendation.selected && approvedDraft ? (
+                    <button
+                      className="secondary-button"
+                      onClick={() => {
+                        navigate(`/cases/${incidentId}/send`);
+                      }}
+                      type="button"
+                    >
+                      <Send aria-hidden="true" />
+                      Send report
+                    </button>
+                  ) : null}
                 </div>
-                {approvedDraft ? (
-                  <SendActionPanel approvedDraft={approvedDraft} db={db} incidentId={incidentId} selectedRoute={recommendation} services={services} />
-                ) : (
-                  <InlineNote message="Write and approve the report first, then the send actions will appear here for this option." />
-                )}
+                {recommendation.selected ? (
+                  approvedDraft ? (
+                    <SendActionPanel approvedDraft={approvedDraft} db={db} incidentId={incidentId} selectedRoute={recommendation} services={services} />
+                  ) : (
+                    <InlineNote message="Approve the report draft first, then the send actions will appear here for the active route." />
+                  )
+                ) : null}
               </div>
             ) : null}
           </section>
@@ -1697,8 +1847,8 @@ export function CaseRoutesScreen({
 
       <div className="button-row">
         <LinkButton icon={ArrowLeft} to={`/cases/${incidentId}/facts`}>Back to details</LinkButton>
-        <LinkButton icon={FolderOpen} to={`/cases/${incidentId}`}>Case summary</LinkButton>
-        <LinkButton icon={MapPinned} to="/routes">All reporting options</LinkButton>
+        <LinkButton icon={FolderOpen} to={`/cases/${incidentId}`}>Open dossier</LinkButton>
+        <LinkButton icon={MapPinned} to="/routes">All routes</LinkButton>
       </div>
     </main>
   );
@@ -1873,32 +2023,44 @@ export function DraftReportScreen({
     <main className="screen">
       <header className="content-header">
         <h1 className="screen-title">Write report</h1>
-        <p className="screen-body">Edit the draft, then approve it before sending, sharing, or exporting.</p>
+        <p className="screen-body">Shape the official brief for this dossier. Once approved, this becomes the report you send, share, archive, and prove.</p>
       </header>
 
-      {walkthroughEnabled ? <WalkthroughHint step={6} title="Review report draft" body='Edit the report if needed, then press "Approve report".' /> : null}
+      {walkthroughEnabled ? <WalkthroughHint step={6} title="Review report draft" body='Edit the report if needed, then press "Approve brief".' /> : null}
 
-      <section className="settings-card">
-        <dl className="detail-list">
+      <section className="document-hero">
+        <div className="document-hero__header">
           <div>
-            <dt>Report option</dt>
-            <dd>{selectedRoute.destination_name_snapshot}</dd>
+            <p className="summary-stat-card__eyebrow">Prepared brief</p>
+            <h2>{formState.subject || "Untitled report"}</h2>
+            <p>{selectedRoute.destination_name_snapshot}</p>
           </div>
-          <div>
-            <dt>How to send</dt>
-            <dd>{selectedRoute.intake_methods_snapshot.join(", ")}</dd>
+          <div className="route-card__chips">
+            <span className="status-chip status-chip--selected">Built locally</span>
+            <span className={trustChipClass(selectedRoute.trust_level)}>{selectedRoute.trust_level}</span>
+            <span className={routeGroupChipClass(selectedRoute.route_group)}>{selectedRoute.route_group}</span>
           </div>
-          <div>
-            <dt>Trust</dt>
-            <dd>{selectedRoute.trust_level}</dd>
-          </div>
-        </dl>
+        </div>
+        <div className="document-hero__meta">
+          <article>
+            <span>Destination</span>
+            <strong>{selectedRoute.destination_name_snapshot}</strong>
+          </article>
+          <article>
+            <span>Delivery path</span>
+            <strong>{selectedRoute.intake_methods_snapshot.join(", ")}</strong>
+          </article>
+          <article>
+            <span>Case route</span>
+            <strong>{selectedRoute.source_label}</strong>
+          </article>
+        </div>
       </section>
 
-      <section className="settings-card">
+      <section className="settings-card settings-card--editor">
         <div className="section-heading">
-          <h2>Report editor</h2>
-          <span className="status-chip">Live preview below</span>
+          <h2>Refine the brief</h2>
+          <span className="status-chip">Preview updates live</span>
         </div>
         <label className="field">
           <span>Subject</span>
@@ -1931,21 +2093,27 @@ export function DraftReportScreen({
             )
           }
         />
-        <InlineNote message="Write in plain language: what happened, who was involved, what proof you have, and what outcome you want." />
+        <InlineNote message="Keep it direct: what happened, who is involved, what proof is attached, and what action you want from the recipient." />
       </section>
 
       <section className="report-preview-card">
         <div className="report-preview-card__header">
           <div className="report-preview-card__badge">
             <FileText aria-hidden="true" />
-            <span>Report preview</span>
+            <span>Official brief preview</span>
           </div>
-          <span className="status-chip">{selectedRoute.destination_name_snapshot}</span>
+          <span className="status-chip">Case {incidentId}</span>
         </div>
         <article className="report-document">
-          <header className="report-document__header">
-            <p className="report-document__eyebrow">Prepared in Dossier</p>
-            <h2>{formState.subject || "Untitled report"}</h2>
+          <header className="report-document__header report-document__header--luxury">
+            <div className="report-document__seal">
+              <span>Dossier</span>
+              <strong>Prepared locally</strong>
+            </div>
+            <div>
+              <p className="report-document__eyebrow">Prepared brief</p>
+              <h2>{formState.subject || "Untitled report"}</h2>
+            </div>
             <dl className="report-document__meta">
               <div>
                 <dt>Destination</dt>
@@ -1959,10 +2127,14 @@ export function DraftReportScreen({
                 <dt>Delivery</dt>
                 <dd>{selectedRoute.intake_methods_snapshot.join(", ")}</dd>
               </div>
+              <div>
+                <dt>Case</dt>
+                <dd>{incidentId}</dd>
+              </div>
             </dl>
           </header>
           <section className="report-document__section">
-            <h3>Summary</h3>
+            <h3>Statement</h3>
             <div className="report-document__body">
               {(formState.body.trim().length > 0 ? formState.body : "Add the report text above to preview the document.")
                 .split(/\n{2,}/)
@@ -1971,22 +2143,42 @@ export function DraftReportScreen({
                 ))}
             </div>
           </section>
-	          <section className="report-document__section">
-	            <h3>Included with this report</h3>
-	            <ul className="report-document__attachments">
+          <section className="report-document__section">
+            <h3>Provenance</h3>
+            <div className="report-document__provenance">
+              <div>
+                <span>Preparation mode</span>
+                <strong>Local-first</strong>
+              </div>
+              <div>
+                <span>Routing source</span>
+                <strong>{selectedRoute.source_label}</strong>
+              </div>
+              <div>
+                <span>Trust level</span>
+                <strong>{selectedRoute.trust_level}</strong>
+              </div>
+            </div>
+          </section>
+          <section className="report-document__section">
+            <h3>Included with this report</h3>
+            <ul className="report-document__attachments">
               {(draftQuery.data?.draft_packet.attachment_labels ?? []).map((label) => (
                 <li key={label}>
                   <CheckCircle2 aria-hidden="true" />
                   <span>{label}</span>
                 </li>
-	              ))}
-	            </ul>
-	          </section>
-	        </article>
-	      </section>
+              ))}
+            </ul>
+          </section>
+        </article>
+      </section>
 
       <section className="settings-card">
-        <h2>Attached proof</h2>
+        <div className="section-heading">
+          <h2>Evidence packet</h2>
+          <span className="status-chip">{(draftQuery.data?.draft_packet.attachment_labels ?? []).length} attachments</span>
+        </div>
         <ul className="inline-list">
           {(draftQuery.data?.draft_packet.attachment_labels ?? []).map((label) => (
             <li key={label}>{label}</li>
@@ -1994,9 +2186,9 @@ export function DraftReportScreen({
         </ul>
       </section>
 
-      <section className="settings-card">
+      <section className="settings-card settings-card--subtle">
         <h2>Send actions</h2>
-        <p>Use these actions after you finish reviewing the report.</p>
+        <p>These actions stay tied to the approved brief and the active route.</p>
         <SendActionPanel
           approvedDraft={draftQuery.data?.draft_packet ? { subject: formState.subject, body: formState.body } : null}
           db={db}
@@ -2008,9 +2200,9 @@ export function DraftReportScreen({
 
       <div className="button-row">
         <PrimaryButton className={walkthroughEnabled ? "walkthrough-target" : undefined} disabled={approveMutation.isPending} icon={ClipboardCheck} onClick={() => { void approveMutation.mutate(); }}>
-          {approveMutation.isPending ? "Approving report" : "Approve report"}
+          {approveMutation.isPending ? "Approving brief" : "Approve brief"}
         </PrimaryButton>
-        <LinkButton icon={ArrowLeft} to={`/cases/${incidentId}/routes`}>Back to reporting options</LinkButton>
+        <LinkButton icon={ArrowLeft} to={`/cases/${incidentId}/routes`}>Back to destinations</LinkButton>
         {approveMutation.error ? <InlineError message="Draft approval did not complete." /> : null}
       </div>
     </main>
@@ -2093,8 +2285,8 @@ export function SendHandoffScreen({
 
       <div className="button-row">
         <LinkButton icon={Shield} to={`/cases/${incidentId}/proof`}>Save confirmation</LinkButton>
-        <LinkButton icon={FolderOpen} to={`/cases/${incidentId}`}>Case summary</LinkButton>
-        <LinkButton icon={ArrowLeft} to={`/cases/${incidentId}/draft`}>Back to report draft</LinkButton>
+        <LinkButton icon={FolderOpen} to={`/cases/${incidentId}`}>Open dossier</LinkButton>
+        <LinkButton icon={ArrowLeft} to={`/cases/${incidentId}/draft`}>Back to brief draft</LinkButton>
       </div>
     </main>
   );
@@ -2522,13 +2714,13 @@ export function ProofActionScreen({ db }: { db: DossierDatabase }) {
     <main className="screen">
       <header className="content-header">
         <h1 className="screen-title">Save confirmation</h1>
-        <p className="screen-body">Save a filing record for the option you used so this case has a clear paper trail.</p>
+        <p className="screen-body">Capture the filing receipt for this dossier so the submission trail looks complete, preserved, and defensible.</p>
       </header>
 
-      <section className="receipt-card">
+      <section className="receipt-card receipt-card--ledger">
         <div className="receipt-card__header">
           <div>
-            <p className="receipt-card__eyebrow">Filing record</p>
+            <p className="receipt-card__eyebrow">Filing receipt</p>
             <h2>{selectedRoute.destination_name_snapshot}</h2>
             <p>{selectedRoute.reason}</p>
           </div>
@@ -2539,6 +2731,10 @@ export function ProofActionScreen({ db }: { db: DossierDatabase }) {
               {confirmationNumber.trim() ? "Reference added" : "Awaiting reference"}
             </span>
           </div>
+        </div>
+        <div className="receipt-card__banner">
+          <strong>{formatSubmissionStatusLabel(status)}</strong>
+          <span>{formatSubmissionMethodLabel(method)}</span>
         </div>
         <dl className="receipt-card__grid">
           {receiptDetails.map((item) => (
@@ -2558,10 +2754,10 @@ export function ProofActionScreen({ db }: { db: DossierDatabase }) {
 
       <section className="settings-card">
         <div className="section-heading">
-          <h2>What happened after sending</h2>
+          <h2>Receipt details</h2>
           <span className="status-chip">{selectedRoute.destination_name_snapshot}</span>
         </div>
-        <p>Use this form to save the exact action you took and any reference returned by the agency, business, or service.</p>
+        <p>Save the exact action you took, any reference returned, and the note you would want to read months later.</p>
         <label className="field">
           <span>Action taken</span>
           <select value={method} onChange={(event) => setMethod(event.target.value as SubmissionProofRecord["method"])}>
@@ -2594,8 +2790,29 @@ export function ProofActionScreen({ db }: { db: DossierDatabase }) {
         <FactsTextarea label="Proof note" value={notes} onChange={setNotes} />
       </section>
 
+      <section className="settings-card settings-card--subtle">
+        <div className="section-heading">
+          <h2>Receipt quality</h2>
+          <span className="status-chip">{confirmationNumber.trim() ? "Traceable" : "Incomplete"}</span>
+        </div>
+        <ul className="summary-checklist">
+          <li className={buildChipClassName("summary-checklist__item", method !== "web_form" && "summary-checklist__item--done")}>
+            <span className="summary-checklist__icon">{method !== "web_form" ? <CheckCircle2 aria-hidden="true" /> : <Square aria-hidden="true" />}</span>
+            <span>Submission method selected</span>
+          </li>
+          <li className={buildChipClassName("summary-checklist__item", confirmationNumber.trim() && "summary-checklist__item--done")}>
+            <span className="summary-checklist__icon">{confirmationNumber.trim() ? <CheckCircle2 aria-hidden="true" /> : <Square aria-hidden="true" />}</span>
+            <span>Reference number saved</span>
+          </li>
+          <li className={buildChipClassName("summary-checklist__item", notes.trim() && "summary-checklist__item--done")}>
+            <span className="summary-checklist__icon">{notes.trim() ? <CheckCircle2 aria-hidden="true" /> : <Square aria-hidden="true" />}</span>
+            <span>Context note saved</span>
+          </li>
+        </ul>
+      </section>
+
       <div className="button-row">
-        <PrimaryButton disabled={saveMutation.isPending} icon={Shield} onClick={() => { void saveMutation.mutate(); }}>{saveMutation.isPending ? "Saving confirmation" : "Save confirmation"}</PrimaryButton>
+        <PrimaryButton disabled={saveMutation.isPending} icon={Shield} onClick={() => { void saveMutation.mutate(); }}>{saveMutation.isPending ? "Saving receipt" : "Save receipt"}</PrimaryButton>
         <LinkButton icon={ArrowLeft} to={`/cases/${incidentId}/send`}>Back to send report</LinkButton>
         {saveMutation.error ? <InlineError message="Proof could not be saved right now." /> : null}
       </div>
@@ -2724,11 +2941,11 @@ export function CaseFileScreen({
   });
 
   if (caseSummaryQuery.isLoading) {
-    return <LoadingScreen title="Case summary" body="Loading the full case record." />;
+    return <LoadingScreen title="Dossier" body="Loading the full case record." />;
   }
 
   if (!caseSummaryQuery.data) {
-    return <ScreenMessage title="Case summary" body="This case could not be loaded on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
+    return <ScreenMessage title="Dossier" body="This case could not be loaded on this device." action={<LinkButton icon={ArrowLeft} to="/cases">Back to cases</LinkButton>} />;
   }
 
   const summary = caseSummaryQuery.data;
@@ -2750,12 +2967,40 @@ export function CaseFileScreen({
   const completedChecklistCount = checklist.filter((item) => item.done).length;
   const completionPercent = Math.round((completedChecklistCount / checklist.length) * 100);
   const recentLogEntries = summary.custody_log.slice().reverse();
+  const nextActionHref =
+    !summary.source_evidence
+      ? "/capture"
+      : !summary.transcript
+        ? `/cases/${incidentId}/transcript`
+        : !summary.fact_set
+          ? `/cases/${incidentId}/facts`
+          : !selectedRoute
+            ? `/cases/${incidentId}/routes`
+            : !summary.draft_packet?.approved
+              ? `/cases/${incidentId}/draft`
+              : !summary.submission_proof
+                ? `/cases/${incidentId}/proof`
+                : `/cases/${incidentId}/export`;
+  const nextActionLabel =
+    !summary.source_evidence
+      ? "Save recording"
+      : !summary.transcript
+        ? "Create transcript"
+        : !summary.fact_set
+          ? "Confirm details"
+          : !selectedRoute
+            ? "Choose destination"
+            : !summary.draft_packet?.approved
+              ? "Approve brief"
+              : !summary.submission_proof
+                ? "Save receipt"
+                : "Export packet";
 
   return (
     <main className="screen">
       <header className="content-header">
-        <h1 className="screen-title">Case summary</h1>
-        <p className="screen-body">Review the full case record, what has been filed, and what still needs to happen next.</p>
+        <h1 className="screen-title">Dossier</h1>
+        <p className="screen-body">Everything important about this case lives here: evidence, route, brief, filing record, and chain of activity.</p>
       </header>
 
       {walkthroughEnabled && isDemoCase ? (
@@ -2778,51 +3023,48 @@ export function CaseFileScreen({
         </section>
       ) : null}
 
-      <section className="summary-hero-grid">
-        <article className="summary-stat-card summary-stat-card--wide">
-          <div className="summary-stat-card__icon"><ScrollText aria-hidden="true" /></div>
+      <section className="dossier-hero">
+        <div className="dossier-hero__header">
           <div>
             <p className="summary-stat-card__eyebrow">Case record</p>
             <h2>{formatCaseTypeLabel(summary.fact_set?.incident_type ?? summary.incident.category) || "Case"}</h2>
             <p>{summary.incident.location_address ?? "Location not saved yet"}</p>
           </div>
-          <div className="summary-stat-card__meta">
-            <span className="status-chip">{completedChecklistCount} of {checklist.length} steps done</span>
+          <div className="route-card__chips">
+            <span className="status-chip status-chip--selected">{completionPercent}% complete</span>
             <span className="status-chip">Case {summary.incident.id}</span>
+            {selectedRoute ? <span className={trustChipClass(selectedRoute.trust_level)}>{selectedRoute.trust_level}</span> : null}
           </div>
-        </article>
-
-        <article className="summary-stat-card">
-          <div className="summary-stat-card__icon"><MapPinned aria-hidden="true" /></div>
-          <div>
-            <p className="summary-stat-card__eyebrow">Destination</p>
-            <h2>{selectedRoute ? selectedRoute.destination_name_snapshot : "Not chosen yet"}</h2>
-            <p>{selectedRoute ? selectedRoute.source_label : "Choose where to report to continue."}</p>
-          </div>
-        </article>
-
-        <article className="summary-stat-card">
-          <div className="summary-stat-card__icon"><NotebookPen aria-hidden="true" /></div>
-          <div>
-            <p className="summary-stat-card__eyebrow">Draft</p>
-            <h2>{summary.draft_packet?.approved ? "Approved" : summary.draft_packet ? "Ready to review" : "Not started"}</h2>
-            <p>{summary.draft_packet ? summary.draft_packet.subject : "Create the report draft for this case."}</p>
-          </div>
-        </article>
-
-        <article className="summary-stat-card">
-          <div className="summary-stat-card__icon"><Package aria-hidden="true" /></div>
-          <div>
-            <p className="summary-stat-card__eyebrow">Evidence</p>
-            <h2>{evidenceLabels.length} saved items</h2>
-            <p>{summary.submission_proof ? "Confirmation included in the record." : "Proof has not been saved yet."}</p>
-          </div>
-        </article>
+        </div>
+        <div className="dossier-hero__stats">
+          <article className="case-home-stat">
+            <span className="case-home-stat__label">Next move</span>
+            <strong>{nextActionLabel}</strong>
+            <p>{completedChecklistCount} of {checklist.length} dossier milestones are complete.</p>
+          </article>
+          <article className="case-home-stat">
+            <span className="case-home-stat__label">Destination</span>
+            <strong>{selectedRoute?.destination_name_snapshot ?? "Not chosen yet"}</strong>
+            <p>{selectedRoute?.source_label ?? "Pick a filing path to lock the brief and receipt to one destination."}</p>
+          </article>
+          <article className="case-home-stat">
+            <span className="case-home-stat__label">Evidence vault</span>
+            <strong>{evidenceLabels.length} preserved items</strong>
+            <p>{summary.submission_proof ? "Receipt included in the dossier." : "Submission receipt not saved yet."}</p>
+          </article>
+        </div>
+        <div className="dossier-hero__actions">
+          <LinkButton className={walkthroughEnabled && isDemoCase ? "walkthrough-target" : undefined} icon={FolderOpen} to={nextActionHref}>
+            {nextActionLabel}
+          </LinkButton>
+          <LinkButton icon={MapPinned} to={`/cases/${incidentId}/routes`}>Open destinations</LinkButton>
+          <LinkButton icon={Package} to={`/cases/${incidentId}/export`}>Open packet</LinkButton>
+        </div>
       </section>
 
       <section className="settings-card summary-progress-card">
         <div className="section-heading">
-          <h2>Progress</h2>
+          <h2>Dossier progress</h2>
           <span className="status-chip">{completionPercent}% complete</span>
         </div>
         <div className="progress-track" aria-hidden="true">
@@ -2840,8 +3082,8 @@ export function CaseFileScreen({
 
       <section className="settings-card">
         <div className="section-heading">
-          <h2>Details</h2>
-          <LinkButton icon={ScanSearch} to={`/cases/${incidentId}/facts`}>Check details</LinkButton>
+          <h2>Verified details</h2>
+          <LinkButton icon={ScanSearch} to={`/cases/${incidentId}/facts`}>Open details</LinkButton>
         </div>
         {summary.fact_set ? (
           <ul className="inline-list">
@@ -2856,8 +3098,8 @@ export function CaseFileScreen({
 
       <section className="settings-card">
         <div className="section-heading">
-          <h2>Where to report</h2>
-          <LinkButton icon={MapPinned} to={`/cases/${incidentId}/routes`}>Open options</LinkButton>
+          <h2>Destination</h2>
+          <LinkButton icon={MapPinned} to={`/cases/${incidentId}/routes`}>Open destinations</LinkButton>
         </div>
         {selectedRoute ? (
           <div className="summary-panel">
@@ -2888,21 +3130,21 @@ export function CaseFileScreen({
 
       <section className="settings-card">
         <div className="section-heading">
-          <h2>Report draft</h2>
-          <LinkButton icon={NotebookPen} to={`/cases/${incidentId}/draft`}>Open draft</LinkButton>
+          <h2>Official brief</h2>
+          <LinkButton icon={NotebookPen} to={`/cases/${incidentId}/draft`}>Open brief</LinkButton>
         </div>
         {summary.draft_packet ? (
           <div className="report-preview-card report-preview-card--compact">
             <div className="report-preview-card__header">
               <span className="report-preview-card__badge">
                 <FileText aria-hidden="true" />
-                {summary.draft_packet.approved ? "Approved draft" : "Draft ready"}
+                {summary.draft_packet.approved ? "Approved brief" : "Brief draft"}
               </span>
               {selectedRoute ? <span className="status-chip">{selectedRoute.destination_name_snapshot}</span> : null}
             </div>
             <div className="report-document">
               <div className="report-document__header">
-                <p className="report-document__eyebrow">Report subject</p>
+                <p className="report-document__eyebrow">Brief subject</p>
                 <h2>{summary.draft_packet.subject}</h2>
               </div>
               <div className="report-document__body">
@@ -2919,14 +3161,14 @@ export function CaseFileScreen({
 
       <section className="settings-card">
         <div className="section-heading">
-          <h2>Confirmation</h2>
-          <LinkButton icon={Shield} to={`/cases/${incidentId}/proof`}>Open confirmation</LinkButton>
+          <h2>Filing receipt</h2>
+          <LinkButton icon={Shield} to={`/cases/${incidentId}/proof`}>Open receipt</LinkButton>
         </div>
         {summary.submission_proof ? (
           <div className="receipt-card receipt-card--compact">
             <div className="receipt-card__header">
               <div>
-                <p className="receipt-card__eyebrow">Saved confirmation</p>
+                <p className="receipt-card__eyebrow">Saved receipt</p>
                 <h2>{selectedRoute?.destination_name_snapshot ?? "Selected route"}</h2>
               </div>
               <div className="route-card__chips">
@@ -2960,8 +3202,8 @@ export function CaseFileScreen({
 
       <section className="settings-card">
         <div className="section-heading">
-          <h2>Evidence</h2>
-          <LinkButton icon={Package} to={`/cases/${incidentId}/export`}>Download packet</LinkButton>
+          <h2>Evidence vault</h2>
+          <LinkButton icon={Package} to={`/cases/${incidentId}/export`}>Open packet</LinkButton>
         </div>
         <ul className="pill-list">
           {evidenceLabels.map((value) => (
@@ -2972,7 +3214,7 @@ export function CaseFileScreen({
 
       <section className="settings-card">
         <div className="section-heading">
-          <h2>Recent activity</h2>
+          <h2>Chain of activity</h2>
           <span className="status-chip">{summary.custody_log.length} entries</span>
         </div>
         <ol className="log-list">

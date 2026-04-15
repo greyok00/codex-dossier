@@ -32,7 +32,7 @@ Product line:
 2. Review the transcript and confirm the case details.
 3. Open `Choose where to report` and pick a destination.
 4. Review the generated report draft.
-5. Send or hand off the report, save confirmation details, and export the case packet.
+5. Send the brief, save the filing receipt, and export the case packet.
 
 ## Current Stack
 

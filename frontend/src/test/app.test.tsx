@@ -97,13 +97,13 @@ function createServices(db: DossierDatabase, overrides: Partial<AppServices> = {
 }
 
 async function enterApp() {
-  let nextHeading = await screen.findByRole("heading", { name: /^(get dossier ready|record what happened|saved cases|reporting options)$/i });
+  let nextHeading = await screen.findByRole("heading", { name: /^(get dossier ready|record what happened|case home|choose where to report)$/i });
   if (/^get dossier ready$/i.test(nextHeading.textContent ?? "")) {
     const prepareButton = screen.queryByRole("button", { name: /^(retry setup|downloading models)$/i });
     if (prepareButton) {
       await userEvent.click(prepareButton);
     }
-    nextHeading = await screen.findByRole("heading", { name: /^(record what happened|saved cases|reporting options)$/i });
+    nextHeading = await screen.findByRole("heading", { name: /^(record what happened|case home|choose where to report)$/i });
   }
   if (!/^record what happened$/i.test(nextHeading.textContent ?? "")) {
     await screen.findByRole("link", { name: /^record$/i });
@@ -293,9 +293,9 @@ describe("frontend local-first scaffold", () => {
     await screen.findByRole("heading", { name: /choose where to report/i });
     await clickAndSettle(screen.getByRole("button", { name: /find reporting options/i }));
 
-    await screen.findByRole("heading", { name: /desert market public contact/i });
-    await screen.findByRole("heading", { name: /arizona consumer complaint/i });
-    await screen.findByRole("heading", { name: /better business bureau complaint/i });
+    expect((await screen.findAllByRole("heading", { name: /desert market public contact/i })).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("heading", { name: /arizona consumer complaint/i })).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("heading", { name: /better business bureau complaint/i })).length).toBeGreaterThan(0);
 
     const businessRouteCard = screen.getByText(/desert market public contact/i).closest("section");
     if (!businessRouteCard) {
@@ -311,8 +311,8 @@ describe("frontend local-first scaffold", () => {
     expect(routeGroups).toEqual(expect.arrayContaining(["Business", "State", "Federal", "Other"]));
     expect(routeGroups.length).toBeGreaterThanOrEqual(4);
 
-    const arizonaRouteHeading = screen.getByRole("heading", { name: /arizona consumer complaint/i });
-    const arizonaRouteCard = arizonaRouteHeading.closest("section");
+    const arizonaRouteHeading = screen.getAllByRole("heading", { name: /arizona consumer complaint/i }).at(-1);
+    const arizonaRouteCard = arizonaRouteHeading?.closest("section");
     if (!arizonaRouteCard) {
       throw new Error("Arizona route card not found");
     }
@@ -363,10 +363,10 @@ describe("frontend local-first scaffold", () => {
     await userEvent.click(screen.getByRole("link", { name: /find reporting options|choose where to report/i }));
     await screen.findByRole("heading", { name: /choose where to report/i });
     await clickAndSettle(screen.getByRole("button", { name: /find reporting options/i }));
-    await screen.findByRole("heading", { name: /arizona consumer complaint/i });
+    expect((await screen.findAllByRole("heading", { name: /arizona consumer complaint/i })).length).toBeGreaterThan(0);
 
-    const arizonaRouteHeading = screen.getByRole("heading", { name: /arizona consumer complaint/i });
-    const arizonaRouteCard = arizonaRouteHeading.closest("section");
+    const arizonaRouteHeading = screen.getAllByRole("heading", { name: /arizona consumer complaint/i }).at(-1);
+    const arizonaRouteCard = arizonaRouteHeading?.closest("section");
     if (!arizonaRouteCard) {
       throw new Error("Arizona route card not found");
     }
@@ -374,25 +374,25 @@ describe("frontend local-first scaffold", () => {
 
     await screen.findByRole("heading", { name: /^write report$/i, level: 1 });
     await screen.findByDisplayValue(/Consumer billing:\s*desert market/i);
-    await clickAndSettle(screen.getByRole("button", { name: /approve report/i }));
+    await clickAndSettle(screen.getByRole("button", { name: /approve brief/i }));
     await screen.findByRole("heading", { name: /^send report$/i, level: 1 });
     await screen.findByRole("button", { name: /share packet/i });
     await clickAndSettle(screen.getByRole("button", { name: /copy report text/i }));
     await waitFor(() => expect(clipboardWriteText).toHaveBeenCalled());
     expect(String(clipboardWriteText.mock.calls[0]?.[0] ?? "")).toMatch(/Destination:\s*Arizona Consumer Complaint/i);
     await clickAndSettle(screen.getByRole("button", { name: /share packet/i }));
-    await userEvent.click(screen.getByRole("link", { name: /save confirmation/i }));
+    await userEvent.click(screen.getByRole("link", { name: /save confirmation|save receipt/i }));
     await screen.findByRole("heading", { name: /^save confirmation$/i, level: 1 });
     await typeAndSettle(await screen.findByLabelText(/confirmation number/i), "ABC-123");
     await typeAndSettle(screen.getByLabelText(/proof note/i), "Shared with the route packet.");
-    await clickAndSettle(screen.getByRole("button", { name: /save confirmation/i }));
+    await clickAndSettle(screen.getByRole("button", { name: /save receipt/i }));
 
-    await screen.findByRole("heading", { name: /^case summary$/i, level: 1 });
+    await screen.findByRole("heading", { name: /^dossier$/i, level: 1 });
     expect(screen.getAllByText(/Consumer billing/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/arizona consumer complaint/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/ABC-123/i).length).toBeGreaterThan(0);
 
-    await userEvent.click(screen.getByRole("link", { name: /download packet/i }));
+    await userEvent.click(screen.getByRole("link", { name: /^export packet$/i }));
     await screen.findByRole("heading", { name: /^download case packet$/i, level: 1 });
     await clickAndSettle(screen.getByRole("button", { name: /download zip/i }));
 

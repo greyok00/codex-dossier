@@ -136,6 +136,16 @@
   border-color: rgba(255, 255, 255, 0.18);
 }
 
+.settings-card--subtle {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-card--editor {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.05)),
+    rgba(255, 255, 255, 0.06);
+}
+
 .section-heading {
   display: flex;
   align-items: center;
@@ -492,10 +502,32 @@
   gap: 1rem;
 }
 
+.case-list--luxury {
+  gap: 1.15rem;
+}
+
 .route-card-list {
   max-height: min(56vh, 40rem);
   overflow-y: auto;
   padding-right: 0.35rem;
+}
+
+.case-card__hero,
+.route-option-card__summary,
+.destination-hero__header,
+.document-hero__header,
+.dossier-hero__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.case-card--active {
+  border-color: rgba(255, 255, 255, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 30%),
+    rgba(255, 255, 255, 0.1);
 }
 
 .route-card__chips {
@@ -514,6 +546,113 @@
   border-radius: 1.2rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
+}
+
+.route-card__selected-panel--active {
+  border-color: rgba(187, 247, 208, 0.18);
+  background: rgba(187, 247, 208, 0.06);
+}
+
+.case-home-hero,
+.destination-hero,
+.document-hero,
+.dossier-hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 1.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.06);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(24px);
+}
+
+.case-home-hero__eyebrow,
+.case-home-hero__stats,
+.case-home-hero__actions,
+.destination-hero__meta,
+.destination-hero__actions,
+.document-hero__meta,
+.dossier-hero__stats,
+.dossier-hero__actions {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.case-home-hero__eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.case-home-hero__stats,
+.destination-hero__meta,
+.document-hero__meta,
+.dossier-hero__stats {
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.case-home-stat,
+.destination-hero__meta article,
+.document-hero__meta article {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 16, 20, 0.36);
+}
+
+.case-home-stat strong,
+.destination-hero__meta strong,
+.document-hero__meta strong {
+  font-size: 1.02rem;
+}
+
+.case-home-stat__label,
+.destination-hero__meta span,
+.document-hero__meta span {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.case-home-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.destination-picker {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.route-option-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.15rem;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03)),
+    rgba(255, 255, 255, 0.04);
+}
+
+.route-option-card--selected {
+  border-color: rgba(187, 247, 208, 0.2);
+  background:
+    radial-gradient(circle at top right, rgba(187, 247, 208, 0.12), transparent 28%),
+    rgba(255, 255, 255, 0.05);
+}
+
+.route-option-card__copy {
+  display: grid;
+  gap: 0.35rem;
 }
 
 .report-preview-card {
@@ -578,6 +717,45 @@
 .report-document__header h2,
 .report-document__section h3 {
   margin: 0;
+}
+
+.report-document__header--luxury {
+  display: grid;
+  gap: 1rem;
+}
+
+.report-document__seal {
+  display: inline-grid;
+  gap: 0.15rem;
+  width: fit-content;
+  padding: 0.75rem 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.report-document__seal span,
+.report-document__provenance span {
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.report-document__provenance {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  margin-top: 0.85rem;
+}
+
+.report-document__provenance div {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .report-document__header h2 {
@@ -647,6 +825,12 @@
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.dossier-hero__actions,
+.destination-hero__actions,
+.case-home-hero__actions {
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
 .summary-stat-card,
@@ -751,6 +935,23 @@
   padding: 1.2rem;
 }
 
+.receipt-card--ledger {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)),
+    rgba(255, 255, 255, 0.07);
+}
+
+.receipt-card__banner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  background: rgba(10, 12, 16, 0.34);
+}
+
 .receipt-card--compact {
   padding: 1rem;
 }
@@ -843,6 +1044,12 @@
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(24px);
+}
+
+.runtime-panel--compact {
+  width: min(100%, 46rem);
+  padding: 0.85rem 1rem;
+  gap: 0.55rem;
 }
 
 .runtime-panel h2,

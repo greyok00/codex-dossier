@@ -263,7 +263,7 @@ export function resolveExtractError(error: unknown) {
 }
 
 export function resolveRouteRecommendationError(error: unknown) {
-  return resolveBackendActionError(error, "Report options could not be prepared right now.");
+  return resolveBackendActionError(error, "Destinations could not be prepared right now.");
 }
 
 export function resolveDraftError(error: unknown) {
